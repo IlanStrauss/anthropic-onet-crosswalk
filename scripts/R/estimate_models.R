@@ -19,10 +19,12 @@
 library(tidyverse)
 
 # --- CONFIGURATION ---
-DATA_DIR <- dirname(dirname(rstudioapi::getSourceEditorContext()$path))
-# If not in RStudio, use:
-# DATA_DIR <- here::here()
-
+# Get root directory (anthropic-onet-crosswalk/)
+ROOT_DIR <- tryCatch(
+  dirname(dirname(dirname(rstudioapi::getSourceEditorContext()$path))),
+  error = function(e) here::here()
+)
+DATA_DIR <- file.path(ROOT_DIR, "data")
 CROSSWALK_FILE <- file.path(DATA_DIR, "processed", "master_task_crosswalk_with_wages.csv")
 OUTPUT_DIR <- file.path(DATA_DIR, "analysis")
 dir.create(OUTPUT_DIR, showWarnings = FALSE)

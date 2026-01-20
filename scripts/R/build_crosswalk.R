@@ -16,13 +16,15 @@ library(tidyverse)
 library(stringdist)  # For fuzzy matching
 
 # --- CONFIGURATION ---
-BASE_DIR <- dirname(dirname(rstudioapi::getSourceEditorContext()$path))
-# If not in RStudio, use:
-# BASE_DIR <- here::here()
-
-RAW_DIR <- file.path(BASE_DIR, "raw")
-PROCESSED_DIR <- file.path(BASE_DIR, "processed")
-ANTHROPIC_DATA <- file.path(BASE_DIR, "..", "release_2026_01_15", "data", "intermediate",
+# Get root directory (anthropic-onet-crosswalk/)
+ROOT_DIR <- tryCatch(
+  dirname(dirname(dirname(rstudioapi::getSourceEditorContext()$path))),
+  error = function(e) here::here()
+)
+DATA_DIR <- file.path(ROOT_DIR, "data")
+RAW_DIR <- file.path(DATA_DIR, "raw")
+PROCESSED_DIR <- file.path(DATA_DIR, "processed")
+ANTHROPIC_DATA <- file.path(ROOT_DIR, "..", "release_2026_01_15", "data", "intermediate",
                             "aei_raw_1p_api_2025-11-13_to_2025-11-20.csv")
 ONET_DIR <- file.path(RAW_DIR, "db_29_1_text")
 

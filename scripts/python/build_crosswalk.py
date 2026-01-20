@@ -18,10 +18,11 @@ import re
 import os
 
 # --- CONFIGURATION ---
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW_DIR = os.path.join(BASE_DIR, 'raw')
-PROCESSED_DIR = os.path.join(BASE_DIR, 'processed')
-ANTHROPIC_DATA = os.path.join(BASE_DIR, '..', 'release_2026_01_15', 'data', 'intermediate',
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATA_DIR = os.path.join(ROOT_DIR, 'data')
+RAW_DIR = os.path.join(DATA_DIR, 'raw')
+PROCESSED_DIR = os.path.join(DATA_DIR, 'processed')
+ANTHROPIC_DATA = os.path.join(ROOT_DIR, '..', 'release_2026_01_15', 'data', 'intermediate',
                                'aei_raw_1p_api_2025-11-13_to_2025-11-20.csv')
 ONET_DIR = os.path.join(RAW_DIR, 'db_29_1_text')
 FUZZY_THRESHOLD = 85

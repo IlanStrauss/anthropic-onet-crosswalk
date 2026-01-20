@@ -511,39 +511,31 @@ anthropic-onet-crosswalk/
 ├── README.md                              # This documentation
 ├── THEORETICAL_FRAMEWORK.md               # Economic theory guide
 │
-├── raw/
-│   ├── onet_db.zip                       # Original O*NET download
-│   └── db_29_1_text/                     # Extracted O*NET files
-│       ├── Task Statements.txt           # 19,265 tasks
-│       ├── Occupation Data.txt           # 1,016 occupations
-│       ├── Job Zones.txt                 # Job zone assignments
-│       ├── Education, Training, and Experience.txt
-│       ├── Task Ratings.txt              # IM and RT scales
-│       ├── Tasks to DWAs.txt             # Task-DWA mapping
-│       ├── DWA Reference.txt             # DWA definitions
-│       ├── IWA Reference.txt             # IWA definitions
-│       ├── Work Activities.txt           # Activity scores
-│       └── [32 additional O*NET files]
+├── data/
+│   ├── raw/
+│   │   ├── onet_db.zip                   # Original O*NET download
+│   │   └── db_29_1_text/                 # Extracted O*NET files (41 files)
+│   │
+│   ├── processed/
+│   │   ├── master_task_crosswalk_with_wages.csv  # PRIMARY OUTPUT
+│   │   ├── master_task_crosswalk.csv             # Without BLS wages
+│   │   └── unmatched_tasks.csv                   # Failed matches
+│   │
+│   ├── analysis/
+│   │   ├── occupation_ai_exposure.csv    # Occupation-level analysis
+│   │   └── model_summary.csv             # Model estimation results
+│   │
+│   └── BLS/
+│       └── oesm24all/                    # May 2024 OEWS wage data
 │
-├── processed/
-│   ├── master_task_crosswalk_with_wages.csv  # PRIMARY OUTPUT
-│   ├── master_task_crosswalk.csv             # Without BLS wages
-│   ├── unmatched_tasks.csv                   # Failed matches
-│   ├── fuzzy_matches_review.csv              # QA file
-│   └── soc_codes_for_bls.csv                 # SOC lookup
-│
-├── analysis/
-│   ├── occupation_ai_exposure.csv            # Occupation-level analysis
-│   └── model_summary.csv                     # Model estimation results
-│
-├── scripts/
-│   ├── build_crosswalk.py                    # Reproducible build
-│   └── estimate_models.py                    # Theoretical models
-│
-└── BLS/
-    ├── oesm24all.zip                         # Original BLS download
-    └── oesm24all/
-        └── all_data_M_2024.xlsx              # May 2024 OEWS
+└── scripts/
+    ├── python/
+    │   ├── build_crosswalk.py            # Build crosswalk (pandas, rapidfuzz)
+    │   └── estimate_models.py            # Estimate models (pandas, numpy)
+    │
+    └── R/
+        ├── build_crosswalk.R             # Build crosswalk (tidyverse, stringdist)
+        └── estimate_models.R             # Estimate models (tidyverse)
 ```
 
 ---

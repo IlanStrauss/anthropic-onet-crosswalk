@@ -21,7 +21,8 @@ import numpy as np
 from pathlib import Path
 
 # --- CONFIGURATION ---
-DATA_DIR = Path(__file__).parent.parent
+ROOT_DIR = Path(__file__).parent.parent.parent  # anthropic-onet-crosswalk/
+DATA_DIR = ROOT_DIR / "data"
 CROSSWALK_FILE = DATA_DIR / "processed" / "master_task_crosswalk_with_wages.csv"
 OUTPUT_DIR = DATA_DIR / "analysis"
 OUTPUT_DIR.mkdir(exist_ok=True)
