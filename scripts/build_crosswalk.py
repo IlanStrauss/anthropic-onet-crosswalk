@@ -1,26 +1,14 @@
 """
 Build Anthropic API Task → O*NET Crosswalk
-==========================================
+===========================================
 
-This script creates a crosswalk linking Anthropic's Claude API task classifications
-to O*NET occupational task codes and occupation codes (SOC).
+Links Anthropic Claude API task descriptions to O*NET occupational codes via:
+1. Text normalization (lowercase, remove punctuation)
+2. Exact string matching
+3. Fuzzy matching (Levenshtein, threshold >= 85)
+4. Enrichment with O*NET occupation attributes
 
-Data Sources:
-- Anthropic Economic Index API data (November 2025): HuggingFace
-- O*NET Database v29.1: https://www.onetcenter.org/database.html
-
-Methodology:
-1. Extract unique task descriptions from Anthropic API data
-2. Normalize text (lowercase, remove punctuation, normalize whitespace)
-3. Exact match to O*NET Task Statements
-4. Fuzzy match remaining tasks (threshold >= 85) using rapidfuzz
-5. Enrich with O*NET occupation data, Job Zones, and education requirements
-
-Output:
-- master_task_crosswalk.csv: Main crosswalk file
-- unmatched_tasks.csv: Tasks that could not be matched
-
-Author: Ilan Strauss / AI Disclosures Project
+Author: Ilan Strauss | AI Disclosures Project
 Date: January 2026
 """
 
@@ -29,20 +17,18 @@ from rapidfuzz import fuzz, process
 import re
 import os
 
-# Paths
+# --- CONFIGURATION ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW_DIR = os.path.join(BASE_DIR, 'raw')
 PROCESSED_DIR = os.path.join(BASE_DIR, 'processed')
 ANTHROPIC_DATA = os.path.join(BASE_DIR, '..', 'release_2026_01_15', 'data', 'intermediate',
                                'aei_raw_1p_api_2025-11-13_to_2025-11-20.csv')
 ONET_DIR = os.path.join(RAW_DIR, 'db_29_1_text')
-
-# Fuzzy match threshold
 FUZZY_THRESHOLD = 85
 
 
 def normalize_text(text):
-    """Normalize text for matching: lowercase, remove punctuation, normalize whitespace."""
+    """Normalize text: lowercase, remove punctuation, collapse whitespace."""
     text = str(text).lower().strip()
     text = re.sub(r'[^\w\s]', '', text)
     text = re.sub(r'\s+', ' ', text)
@@ -50,46 +36,31 @@ def normalize_text(text):
 
 
 def load_data():
-    """Load Anthropic and O*NET data."""
-    print("Loading data...")
-
-    # Anthropic API data
+    """Load Anthropic API data and O*NET reference files."""
     anthropic = pd.read_csv(ANTHROPIC_DATA)
-
-    # O*NET data
     onet_tasks = pd.read_csv(os.path.join(ONET_DIR, 'Task Statements.txt'), sep='\t')
     onet_occs = pd.read_csv(os.path.join(ONET_DIR, 'Occupation Data.txt'), sep='\t')
     job_zones = pd.read_csv(os.path.join(ONET_DIR, 'Job Zones.txt'), sep='\t')
     education = pd.read_csv(os.path.join(ONET_DIR, 'Education, Training, and Experience.txt'), sep='\t')
-
     return anthropic, onet_tasks, onet_occs, job_zones, education
 
 
 def extract_anthropic_tasks(anthropic):
-    """Extract task descriptions and counts from Anthropic data."""
-    print("Extracting Anthropic tasks...")
-
+    """Filter to O*NET task facet and extract task descriptions with API counts."""
     task_data = anthropic[
         (anthropic['facet'] == 'onet_task') &
         (anthropic['variable'] == 'onet_task_count')
     ][['cluster_name', 'value']].copy()
-
     task_data.columns = ['anthropic_task', 'api_count']
 
     # Exclude placeholder categories
-    non_tasks = ['not_classified', 'none']
-    task_data = task_data[~task_data['anthropic_task'].str.lower().isin(non_tasks)]
-
+    task_data = task_data[~task_data['anthropic_task'].str.lower().isin(['not_classified', 'none'])]
     task_data['task_norm'] = task_data['anthropic_task'].apply(normalize_text)
-
-    print(f"  Found {len(task_data)} unique tasks")
     return task_data
 
 
 def exact_match(task_data, onet_tasks):
-    """Perform exact matching on normalized text."""
-    print("Performing exact matching...")
-
+    """Match normalized Anthropic tasks to O*NET tasks via exact string comparison."""
     onet_tasks['task_norm'] = onet_tasks['Task'].apply(normalize_text)
     onet_lookup = onet_tasks.groupby('task_norm').first().reset_index()[
         ['task_norm', 'O*NET-SOC Code', 'Task ID', 'Task', 'Task Type']
@@ -100,20 +71,12 @@ def exact_match(task_data, onet_tasks):
     matched['match_method'] = 'exact'
     matched['match_score'] = 100.0
 
-    unmatched = merged[merged['O*NET-SOC Code'].isna()][
-        ['anthropic_task', 'api_count', 'task_norm']
-    ]
-
-    print(f"  Exact matches: {len(matched)}")
-    print(f"  Remaining for fuzzy matching: {len(unmatched)}")
-
+    unmatched = merged[merged['O*NET-SOC Code'].isna()][['anthropic_task', 'api_count', 'task_norm']]
     return matched, unmatched, onet_tasks
 
 
 def fuzzy_match(unmatched, onet_tasks, threshold=FUZZY_THRESHOLD):
-    """Perform fuzzy matching on remaining tasks."""
-    print(f"Performing fuzzy matching (threshold >= {threshold})...")
-
+    """Match remaining tasks using Levenshtein similarity (rapidfuzz)."""
     onet_choices = list(onet_tasks['task_norm'].unique())
     onet_norm_lookup = onet_tasks.groupby('task_norm').first().reset_index()
 
@@ -136,28 +99,22 @@ def fuzzy_match(unmatched, onet_tasks, threshold=FUZZY_THRESHOLD):
                     'match_method': 'fuzzy',
                     'match_score': score
                 })
-
-    fuzzy_matched = pd.DataFrame(fuzzy_rows)
-    print(f"  Fuzzy matches: {len(fuzzy_matched)}")
-
-    return fuzzy_matched
+    return pd.DataFrame(fuzzy_rows)
 
 
 def enrich_with_onet(matched, onet_occs, job_zones, education):
-    """Add O*NET occupation data, job zones, and education."""
-    print("Enriching with O*NET attributes...")
-
-    # Add occupation titles and descriptions
+    """Add occupation titles, job zones, and typical education from O*NET."""
+    # Occupation titles
     matched = matched.merge(
         onet_occs[['O*NET-SOC Code', 'Title', 'Description']],
         on='O*NET-SOC Code', how='left'
     )
 
-    # Add job zones
+    # Job zones (1-5 education/preparation scale)
     jz_clean = job_zones[['O*NET-SOC Code', 'Job Zone']].drop_duplicates()
     matched = matched.merge(jz_clean, on='O*NET-SOC Code', how='left')
 
-    # Add typical education
+    # Typical education level
     edu_level = education[education['Element Name'] == 'Required Level of Education'][
         ['O*NET-SOC Code', 'Category', 'Data Value']
     ]
@@ -174,15 +131,11 @@ def enrich_with_onet(matched, onet_occs, job_zones, education):
             edu_pivot[['O*NET-SOC Code', 'typical_education', 'typical_education_pct']],
             on='O*NET-SOC Code', how='left'
         )
-
     return matched
 
 
 def save_outputs(matched, task_data, output_dir):
-    """Save final crosswalk and unmatched tasks."""
-    print("Saving outputs...")
-
-    # Rename columns for final output
+    """Save crosswalk and unmatched tasks to CSV."""
     final = matched[[
         'anthropic_task', 'api_count',
         'O*NET-SOC Code', 'Task ID', 'Task', 'Task Type',
@@ -202,65 +155,31 @@ def save_outputs(matched, task_data, output_dir):
     final = final.sort_values('api_usage_count', ascending=False)
     final.to_csv(os.path.join(output_dir, 'master_task_crosswalk.csv'), index=False)
 
-    # Save unmatched
+    # Unmatched tasks
     matched_tasks = set(matched['anthropic_task'])
     unmatched_final = task_data[~task_data['anthropic_task'].isin(matched_tasks)]
-    unmatched_final = unmatched_final.sort_values('api_count', ascending=False)
     unmatched_final[['anthropic_task', 'api_count']].to_csv(
         os.path.join(output_dir, 'unmatched_tasks.csv'), index=False
     )
-
     return final, unmatched_final
 
 
-def print_summary(final, task_data, unmatched_final):
-    """Print summary statistics."""
-    print("\n" + "="*60)
-    print("CROSSWALK SUMMARY")
-    print("="*60)
-    print(f"Total Anthropic tasks: {len(task_data)}")
-    print(f"Matched tasks: {len(final)}")
-    print(f"Match rate: {len(final) / len(task_data) * 100:.1f}%")
-    print(f"\nAPI usage coverage: {final['api_usage_count'].sum() / task_data['api_count'].sum() * 100:.1f}%")
-    print(f"\nMatch method breakdown:")
-    print(final['match_method'].value_counts().to_string())
-    print(f"\nUnique SOC codes: {final['onet_soc_code'].nunique()}")
-    print(f"Unmatched tasks: {len(unmatched_final)}")
-
-
 def main():
-    """Main execution."""
-    print("="*60)
-    print("Building Anthropic → O*NET Task Crosswalk")
-    print("="*60 + "\n")
-
+    """Execute crosswalk build pipeline."""
     # Load data
     anthropic, onet_tasks, onet_occs, job_zones, education = load_data()
 
-    # Extract Anthropic tasks
+    # Extract and match tasks
     task_data = extract_anthropic_tasks(anthropic)
-
-    # Exact matching
     exact_matched, unmatched, onet_tasks = exact_match(task_data, onet_tasks)
-
-    # Fuzzy matching
     fuzzy_matched = fuzzy_match(unmatched, onet_tasks)
 
-    # Combine matches
+    # Combine and enrich
     all_matched = pd.concat([exact_matched, fuzzy_matched], ignore_index=True)
-
-    # Enrich with O*NET data
     enriched = enrich_with_onet(all_matched, onet_occs, job_zones, education)
 
-    # Save outputs
-    final, unmatched_final = save_outputs(enriched, task_data, PROCESSED_DIR)
-
-    # Print summary
-    print_summary(final, task_data, unmatched_final)
-
-    print("\n" + "="*60)
-    print("Done!")
-    print("="*60)
+    # Save
+    save_outputs(enriched, task_data, PROCESSED_DIR)
 
 
 if __name__ == '__main__':
