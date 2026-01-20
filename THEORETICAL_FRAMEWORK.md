@@ -230,11 +230,11 @@ API_usage_j = β₀ + β₁·RTI_j + β₂·education_j + ε
 | O*NET task IDs | Our crosswalk | ✓ Have |
 | SOC codes | Our crosswalk | ✓ Have |
 | Job Zone | O*NET | ✓ Have |
-| Task importance | O*NET Task Ratings | Need to add |
-| Routine/non-routine | Autor-Dorn crosswalk | Need to add |
-| BLS wages | OEWS | Need to add |
-| BLS employment | OEWS | Need to add |
-| Industry breakdown | BLS | Need to add |
+| Task importance | O*NET Task Ratings | ✓ Have |
+| Routine/non-routine | Work Activities elements | ✓ Have |
+| BLS wages | OEWS May 2024 | ✓ Have |
+| BLS employment | OEWS May 2024 | ✓ Have |
+| Ambiguous task handling | Equal-split allocation | ✓ Implemented |
 
 ---
 
@@ -271,15 +271,72 @@ API_usage_j = β₀ + β₁·RTI_j + β₂·education_j + ε
 
 ---
 
-## 9. Next Steps
+## 9. Methodological Note: Handling Ambiguous Task Mappings
 
-1. **Add O*NET task ratings** (importance, frequency, level)
-2. **Add routine/non-routine classification**
-3. **Link to BLS wages and employment**
-4. **Estimate task displacement share**
-5. **Calculate wage-weighted AI exposure by occupation**
-6. **Compare to existing AI exposure indices**
-7. **Build aggregate demand simulation model**
+### 9.1 The Problem
+
+O*NET task statements can appear in multiple occupations with identical text. For example, "Maintain regularly scheduled office hours to advise and assist students" appears in 34 professor occupations (25-1011 through 25-1199).
+
+When Anthropic's task text matches such shared statements, we cannot determine from the string alone which occupation generated the API call.
+
+**Scope:**
+- 414 O*NET tasks (2.4%) are shared across multiple SOCs
+- 97 Anthropic tasks (4.6% of matches) are affected
+- ~7% of total API usage involves ambiguous mappings
+
+### 9.2 Solution: Conservative Equal-Split Allocation
+
+**Main specification:** When a task maps to N occupations, allocate 1/N of usage to each:
+
+```
+api_usage_count = original_count / N
+split_weight = 1 / N
+```
+
+**Rationale:**
+- No additional assumptions about which occupation generated calls
+- Conservation guaranteed (weights sum to 1)
+- Transparent and robust to critique
+
+**Robustness check:** Employment-weighted allocation as sensitivity analysis.
+
+### 9.3 Implications for Model Estimation
+
+The equal-split approach affects occupation-level exposure calculations:
+- Some occupations receive partial credit for shared tasks
+- Employment-weighted exposure may differ from equal-split
+- Model results should be compared across both specifications
+
+**Recommended reporting:**
+> "Because O*NET task statements can be shared across multiple occupations, a subset of Anthropic task strings maps to multiple SOCs. We treat these mappings as ambiguous and allocate usage across candidate occupations using a conservative equal-split rule. We report employment-weighted allocation as a robustness check."
+
+---
+
+## 10. Implementation Status
+
+| Component | Status | Output File |
+|-----------|--------|-------------|
+| O*NET task ratings | ✓ Complete | master_task_crosswalk.csv |
+| Routine/non-routine | ✓ Complete | master_task_crosswalk.csv |
+| BLS wage linkage | ✓ Complete | master_task_crosswalk_with_wages.csv |
+| Ambiguous task handling | ✓ Complete | audit/*.csv |
+| Task displacement (A-R) | ✓ Complete | model_summary.csv |
+| Wage share effects (Kaleckian) | ✓ Complete | model_summary.csv |
+| Regime determination (B-M) | ✓ Complete | model_summary.csv |
+| Sensitivity analysis | ✓ Complete | sensitivity_equal_vs_empweighted.csv |
+
+---
+
+## 11. Next Steps
+
+1. ~~Add O*NET task ratings~~ ✓ Complete
+2. ~~Add routine/non-routine classification~~ ✓ Complete
+3. ~~Link to BLS wages and employment~~ ✓ Complete
+4. ~~Estimate task displacement share~~ ✓ Complete
+5. ~~Calculate wage-weighted AI exposure by occupation~~ ✓ Complete
+6. **Compare to existing AI exposure indices** (Webb, Felten, Eloundou)
+7. **Build aggregate demand simulation model** (dynamic extension)
+8. **Extend temporal coverage** when Anthropic releases more data
 
 ---
 

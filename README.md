@@ -223,7 +223,74 @@ for anthropic_task in unmatched_tasks:
 
 **Unmatched:** 142 tasks could not be matched (6.2% of Anthropic tasks, 3.2% of API usage)
 
-### 2.5 Step 4: O\*NET Attribute Enrichment
+### 2.5 Step 4: Handling Ambiguous Task→SOC Mappings
+
+**Problem:** Some O\*NET task statements appear in multiple occupations with identical text. For example, "Maintain regularly scheduled office hours to advise and assist students" appears in 34 different professor occupations (25-1011 through 25-1199).
+
+When an Anthropic task matches such a shared task statement, we cannot determine from the string alone which occupation generated the API call.
+
+**Scope of ambiguity:**
+| Metric | Value |
+|--------|-------|
+| O\*NET tasks shared across multiple SOCs | 414 (2.4% of O\*NET tasks) |
+| Anthropic tasks matching ambiguous O\*NET tasks | 97 (4.6% of matched tasks) |
+| API usage in ambiguous tasks | ~7% of total usage |
+
+**Solution: Equal-split allocation (main specification)**
+
+Because O\*NET task statements can be shared across multiple occupations, a subset of Anthropic task strings maps to multiple SOCs. We treat these mappings as ambiguous and allocate usage across candidate occupations using a **conservative equal-split rule**.
+
+For each Anthropic task that matches N different SOC codes:
+```python
+# Create N rows, one per candidate SOC
+for soc in candidate_socs:
+    row['api_usage_count'] = original_count / N  # Equal split
+    row['split_weight'] = 1 / N
+    row['n_candidate_socs'] = N
+    row['is_ambiguous'] = True
+    row['ambiguous_group_id'] = unique_id  # For auditing
+```
+
+**Why equal-split:**
+- **No additional assumptions:** The string alone does not identify the occupation; we do not inject a prior about which occupation generated the calls.
+- **Conservation guaranteed:** Weights sum to 1, totals match, no inflation of usage.
+- **Easy to explain:** Transparent and robust to downstream critiques.
+
+**Robustness check: Employment-weighted allocation**
+
+As a sensitivity analysis, we also provide employment-weighted allocation:
+```python
+# Weight by BLS employment within candidate SOC set
+weight_s = employment_s / sum(employment in candidate_socs)
+row['api_usage_count'] = original_count * weight_s
+```
+
+This assumes API usage is more likely from larger occupations. We report both specifications to demonstrate robustness.
+
+**New fields in crosswalk:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `api_usage_count_original` | float | Original usage count before splitting |
+| `api_usage_count` | float | Usage after equal-split allocation |
+| `split_weight` | float | Weight applied (1/N for equal split) |
+| `n_candidate_socs` | integer | Number of candidate SOCs for this task |
+| `is_ambiguous` | boolean | True if task maps to multiple SOCs |
+| `ambiguous_group_id` | integer | Unique ID for auditing ambiguous groups |
+
+**Audit outputs:**
+
+| File | Purpose |
+|------|---------|
+| `audit/onet_task_text_duplicates.csv` | All O\*NET tasks shared across SOCs |
+| `audit/anthropic_tasks_ambiguous_matches.csv` | Anthropic tasks with ambiguous mappings |
+| `audit/exposure_accounting_check.csv` | Verify usage totals are conserved |
+
+**Methods section language:**
+
+> "Because O\*NET task statements can be shared across multiple occupations, a subset of Anthropic task strings maps to multiple SOCs. We treat these mappings as ambiguous and allocate usage across candidate occupations using a conservative equal-split rule. We report employment-weighted allocation as a robustness check."
+
+### 2.6 Step 5: O\*NET Attribute Enrichment
 
 For each matched task, retrieve standard O\*NET attributes:
 
@@ -384,7 +451,17 @@ This crosswalk follows conventions established in the labor economics literature
 | Variable | Type | Description | Source | Coverage |
 |----------|------|-------------|--------|----------|
 | `anthropic_task_description` | string | Original task text from API | Anthropic HuggingFace | 100% |
-| `api_usage_count` | integer | Number of API calls (Nov 2025) | Anthropic HuggingFace | 100% |
+| `api_usage_count_original` | float | Original API call count before splitting | Anthropic HuggingFace | 100% |
+| `api_usage_count` | float | API calls after equal-split allocation | Constructed | 100% |
+
+#### Ambiguous Task Handling Variables
+
+| Variable | Type | Description | Source | Coverage |
+|----------|------|-------------|--------|----------|
+| `split_weight` | float | Weight applied (1/N for N candidate SOCs) | Constructed | 100% |
+| `n_candidate_socs` | integer | Number of SOCs this task maps to | Constructed | 100% |
+| `is_ambiguous` | boolean | True if task maps to multiple SOCs | Constructed | 100% |
+| `ambiguous_group_id` | integer | Unique ID for auditing ambiguous groups | Constructed | For ambiguous only |
 
 #### Matching Variables
 
@@ -521,9 +598,16 @@ anthropic-onet-crosswalk/
 │   │   ├── master_task_crosswalk.csv             # Without BLS wages
 │   │   └── unmatched_tasks.csv                   # Failed matches
 │   │
+│   ├── audit/                            # Audit trail for transparency
+│   │   ├── onet_task_text_duplicates.csv         # O*NET tasks in multiple SOCs
+│   │   ├── anthropic_tasks_ambiguous_matches.csv # Ambiguous Anthropic→SOC mappings
+│   │   └── exposure_accounting_check.csv         # Usage conservation verification
+│   │
 │   ├── analysis/
-│   │   ├── occupation_ai_exposure.csv    # Occupation-level analysis
-│   │   └── model_summary.csv             # Model estimation results
+│   │   ├── occupation_ai_exposure_equal.csv      # MAIN: Equal-split exposure
+│   │   ├── occupation_ai_exposure_empweighted.csv # Robustness: Emp-weighted
+│   │   ├── model_summary.csv                     # Model results (both specs)
+│   │   └── sensitivity_equal_vs_empweighted.csv  # Sensitivity comparison
 │   │
 │   └── BLS/
 │       └── oesm24all/                    # May 2024 OEWS wage data

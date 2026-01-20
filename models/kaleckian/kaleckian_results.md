@@ -51,7 +51,7 @@ Where: Δω = change in wage share
 
 ---
 
-## 3. Data
+## 3. Data & Methodology
 
 ### Variables from Our Data
 
@@ -78,6 +78,19 @@ Where: Δω = change in wage share
 - Profit-earners spend 40 cents of each dollar
 - Difference (40 cents) = consumption loss per dollar shifted from wages to profits
 
+### Handling Ambiguous Task→SOC Mappings
+
+Because O*NET task statements can be shared across multiple occupations, a subset of Anthropic task strings maps to multiple SOCs. We handle this as follows:
+
+**Main specification (Equal-split):** When a task maps to N occupations, allocate 1/N of usage to each.
+
+**Robustness check (Employment-weighted):** Allocate usage proportional to occupation employment.
+
+| Metric | Value |
+|--------|-------|
+| Anthropic tasks with ambiguous mappings | 97 (4.6%) |
+| API usage in ambiguous tasks | 7.9% |
+
 ### Calculation Steps
 
 ```
@@ -92,22 +105,34 @@ Where: Δω = change in wage share
 
 ## 4. Results
 
+### Main Specification (Equal-Split Allocation)
+
 | Metric | Value | Meaning |
 |--------|-------|---------|
 | **Wage share reduction** | 0.34% | Fraction of wage bill at risk |
-| **Consumption effect** | 0.14% | Direct reduction in consumption |
+| **Consumption effect** | 0.13% | Direct reduction in consumption |
 | **Keynesian multiplier** | 3.33 | Amplification factor |
-| **AD effect (with multiplier)** | 0.46% | Total demand reduction |
-| **Employment share at risk** | 0.27% | Share of jobs in exposed occupations |
-| **Wage bill at risk** | $41.1 billion | Dollar value of exposed wages |
+| **AD effect (with multiplier)** | 0.45% | Total demand reduction |
+| **Employment share at risk** | 0.26% | Share of jobs in exposed occupations |
+| **Occupations with wage data** | 558 | Coverage of US occupational structure |
+
+### Robustness Check (Employment-Weighted Allocation)
+
+| Metric | Equal-Split | Emp-Weighted | Difference |
+|--------|-------------|--------------|------------|
+| Wage share reduction | 0.34% | 0.34% | +2.2% |
+| AD effect | 0.45% | 0.46% | +2.2% |
+| Employment at risk | 0.26% | 0.27% | +2.0% |
+
+**Interpretation:** Results are robust to the choice of allocation method for ambiguous tasks. The employment-weighted specification yields slightly higher estimates (+2.2%), but qualitative conclusions are unchanged.
 
 ---
 
 ## 5. Results Interpretation
 
-### What the -0.46% AD effect means
+### What the -0.45% AD effect means
 
-- If AI-exposed wages were fully displaced to profits, **aggregate demand would fall by 0.46%**
+- If AI-exposed wages were fully displaced to profits, **aggregate demand would fall by 0.45%**
 - This is **4x larger** than the Acemoglu-Restrepo wage effect (-0.11%)
 - The difference comes from:
   1. **Consumption channel**: Income redistribution reduces spending
@@ -118,7 +143,7 @@ Where: Δω = change in wage share
 | Model | Captures | Effect |
 |-------|----------|--------|
 | A-R | Supply-side task displacement | -0.11% |
-| Kaleckian | + Consumption reduction | -0.46% |
+| Kaleckian | + Consumption reduction | -0.45% |
 | | + Multiplier effects | |
 
 The Kaleckian model reveals **demand-side risks** invisible to supply-side models.
@@ -143,8 +168,8 @@ The Kaleckian model reveals **demand-side risks** invisible to supply-side model
 | Model | Effect | What it captures |
 |-------|--------|------------------|
 | Acemoglu-Restrepo | -0.11% | Task displacement only |
-| **Kaleckian** | **-0.46%** | + Consumption + multiplier |
-| Bhaduri-Marglin | -0.75% | + Investment feedbacks |
+| **Kaleckian** | **-0.45%** | + Consumption + multiplier |
+| Bhaduri-Marglin | -0.73% | + Investment feedbacks |
 
 ---
 

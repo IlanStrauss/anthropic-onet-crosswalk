@@ -17,6 +17,10 @@ Three theoretical frameworks applied to Anthropic API task exposure data:
    - Determines whether economy is wage-led or profit-led
    - Key equation: I = g₀ + g_u×u + g_π×π
 
+EXPOSURE SPECIFICATIONS:
+- Main: Equal-split allocation for ambiguous task→SOC mappings
+- Robustness: Employment-weighted allocation
+
 Author: Ilan Strauss | AI Disclosures Project
 Date: January 2026
 """
@@ -53,19 +57,26 @@ def load_crosswalk():
     return pd.read_csv(CROSSWALK_FILE)
 
 
-def calculate_occupation_exposure(df):
+def calculate_occupation_exposure_equal(df):
     """
-    Aggregate task-level data to occupation level.
-    Calculate AI exposure as share of total API usage.
+    Aggregate task-level data to occupation level using EQUAL-SPLIT weights.
+    This is the MAIN specification.
+
+    The crosswalk already has api_usage_count split equally across ambiguous SOCs.
     """
     total_usage = df['api_usage_count'].sum()
+    df = df.copy()
     df['task_usage_share'] = df['api_usage_count'] / total_usage
 
     # Weight by task importance (standard in labor economics)
-    df['weighted_exposure'] = df['task_usage_share'] * df['task_importance'].fillna(df['task_importance'].mean())
+    task_imp_mean = df['task_importance'].mean() if 'task_importance' in df.columns else 1.0
+    if 'task_importance' in df.columns:
+        df['weighted_exposure'] = df['task_usage_share'] * df['task_importance'].fillna(task_imp_mean)
+    else:
+        df['weighted_exposure'] = df['task_usage_share']
 
     # Aggregate to occupation
-    occ = df.groupby('onet_soc_code').agg({
+    agg_dict = {
         'api_usage_count': 'sum',
         'task_usage_share': 'sum',
         'weighted_exposure': 'sum',
@@ -73,12 +84,87 @@ def calculate_occupation_exposure(df):
         'A_MEDIAN': 'first',
         'TOT_EMP': 'first',
         'onet_occupation_title': 'first',
-        'Job Zone': 'first',
-        'nonroutine_total': 'mean',
-        'task_importance': 'mean'
-    }).reset_index()
+        'job_zone': 'first',
+    }
 
+    # Add optional columns if they exist
+    if 'nonroutine_total' in df.columns:
+        agg_dict['nonroutine_total'] = 'mean'
+    if 'task_importance' in df.columns:
+        agg_dict['task_importance'] = 'mean'
+
+    occ = df.groupby('onet_soc_code').agg(agg_dict).reset_index()
     occ['ai_exposure'] = occ['task_usage_share']
+    occ['weight_method'] = 'equal_split'
+
+    return occ[occ['A_MEAN'].notna()].copy()
+
+
+def calculate_occupation_exposure_empweighted(df):
+    """
+    Aggregate task-level data to occupation level using EMPLOYMENT-WEIGHTED splits.
+    This is the ROBUSTNESS specification.
+
+    For ambiguous tasks, re-weight based on occupation employment.
+    """
+    df = df.copy()
+
+    # Get employment by SOC
+    emp_by_soc = df.groupby('onet_soc_code')['TOT_EMP'].first().to_dict()
+
+    # For each ambiguous group, recalculate weights based on employment
+    if 'ambiguous_group_id' in df.columns and 'api_usage_count_original' in df.columns:
+        # Process ambiguous groups
+        ambig_mask = df['is_ambiguous'] == True
+        if ambig_mask.any():
+            for group_id in df.loc[ambig_mask, 'ambiguous_group_id'].unique():
+                if pd.isna(group_id):
+                    continue
+                group_mask = df['ambiguous_group_id'] == group_id
+                group_socs = df.loc[group_mask, 'onet_soc_code'].values
+                group_emps = [emp_by_soc.get(soc, 0) for soc in group_socs]
+                total_emp = sum(group_emps)
+
+                if total_emp > 0:
+                    # Employment-weighted split
+                    original_usage = df.loc[group_mask, 'api_usage_count_original'].iloc[0]
+                    for i, (idx, soc) in enumerate(zip(df.loc[group_mask].index, group_socs)):
+                        emp_weight = group_emps[i] / total_emp
+                        df.loc[idx, 'api_usage_count'] = original_usage * emp_weight
+                        df.loc[idx, 'split_weight'] = emp_weight
+                # If no employment data, keep equal split (fallback)
+
+    total_usage = df['api_usage_count'].sum()
+    df['task_usage_share'] = df['api_usage_count'] / total_usage
+
+    # Weight by task importance
+    task_imp_mean = df['task_importance'].mean() if 'task_importance' in df.columns else 1.0
+    if 'task_importance' in df.columns:
+        df['weighted_exposure'] = df['task_usage_share'] * df['task_importance'].fillna(task_imp_mean)
+    else:
+        df['weighted_exposure'] = df['task_usage_share']
+
+    # Aggregate to occupation
+    agg_dict = {
+        'api_usage_count': 'sum',
+        'task_usage_share': 'sum',
+        'weighted_exposure': 'sum',
+        'A_MEAN': 'first',
+        'A_MEDIAN': 'first',
+        'TOT_EMP': 'first',
+        'onet_occupation_title': 'first',
+        'job_zone': 'first',
+    }
+
+    if 'nonroutine_total' in df.columns:
+        agg_dict['nonroutine_total'] = 'mean'
+    if 'task_importance' in df.columns:
+        agg_dict['task_importance'] = 'mean'
+
+    occ = df.groupby('onet_soc_code').agg(agg_dict).reset_index()
+    occ['ai_exposure'] = occ['task_usage_share']
+    occ['weight_method'] = 'employment_weighted'
+
     return occ[occ['A_MEAN'].notna()].copy()
 
 
@@ -93,6 +179,8 @@ def acemoglu_restrepo_model(occ):
 
     Returns dict with key estimates.
     """
+    occ = occ.copy()
+
     # Calculate wage bill and shares
     occ['wage_bill'] = occ['TOT_EMP'] * occ['A_MEAN']
     total_wage_bill = occ['wage_bill'].sum()
@@ -114,7 +202,7 @@ def acemoglu_restrepo_model(occ):
         'wage_effect': wage_effect,
         'sigma': SIGMA,
         'total_wage_bill': total_wage_bill
-    }
+    }, occ
 
 
 def kaleckian_model(occ, ar_results):
@@ -129,6 +217,7 @@ def kaleckian_model(occ, ar_results):
 
     Returns dict with key estimates.
     """
+    occ = occ.copy()
     total_wage_bill = ar_results['total_wage_bill']
 
     # Wage bill at risk (exposure-weighted)
@@ -160,7 +249,7 @@ def kaleckian_model(occ, ar_results):
         'emp_share_at_risk': emp_at_risk / total_emp,
         'c_w': C_W,
         'c_pi': C_PI
-    }
+    }, occ
 
 
 def bhaduri_marglin_model(occ, ar_results):
@@ -191,7 +280,6 @@ def bhaduri_marglin_model(occ, ar_results):
     total_wage_bill = ar_results['total_wage_bill']
 
     # Current profit share (1 - wage share in our framework)
-    # We approximate using the wage share effect from AI exposure
     wage_share_baseline = 0.55  # Approximate US wage share
     profit_share_baseline = 1 - wage_share_baseline
 
@@ -200,15 +288,13 @@ def bhaduri_marglin_model(occ, ar_results):
     profit_share_new = profit_share_baseline + delta_profit_share
 
     # Equilibrium utilization BEFORE AI shock
-    # u* = (g₀ + g_π×π) / (s_π×π - g_u)
     denominator_before = (S_PI * profit_share_baseline) - G_U
     if denominator_before <= 0:
-        # Stability condition violated - use baseline
         u_star_before = U_BASELINE
     else:
         u_star_before = (G_0 + G_PI * profit_share_baseline) / denominator_before
 
-    # Equilibrium utilization AFTER AI shock (profit share increases)
+    # Equilibrium utilization AFTER AI shock
     denominator_after = (S_PI * profit_share_new) - G_U
     if denominator_after <= 0:
         u_star_after = U_BASELINE
@@ -219,20 +305,13 @@ def bhaduri_marglin_model(occ, ar_results):
     delta_u = u_star_after - u_star_before
 
     # Regime determination: ∂u*/∂π
-    # Sign of numerator: g_π×s_π×π - g_π×g_u - g₀×s_π - g_π×π×s_π = -g_π×g_u - g₀×s_π
-    # Simplifies to: -(g_π×g_u + g₀×s_π)
     regime_numerator = -(G_PI * G_U + G_0 * S_PI)
     regime_denominator = denominator_before ** 2 if denominator_before > 0 else 1
-
     partial_u_partial_pi = regime_numerator / regime_denominator
 
-    if partial_u_partial_pi > 0:
-        regime = "profit-led"
-    else:
-        regime = "wage-led"
+    regime = "profit-led" if partial_u_partial_pi > 0 else "wage-led"
 
-    # Output effect (utilization change × baseline output)
-    # Approximating output effect as % change in utilization
+    # Output effect
     output_effect = delta_u / U_BASELINE if U_BASELINE > 0 else 0
 
     # Investment effect: ΔI = g_u×Δu + g_π×Δπ
@@ -267,8 +346,19 @@ def routine_analysis(occ):
     Traditional view (Autor et al. 2003): automation affects ROUTINE tasks.
     LLMs may reverse this by affecting NON-ROUTINE COGNITIVE tasks.
     """
+    if 'nonroutine_total' not in occ.columns:
+        return {'correlation': np.nan, 'routine_mean_exposure': np.nan,
+                'nonroutine_mean_exposure': np.nan, 'routine_mean_wage': np.nan,
+                'nonroutine_mean_wage': np.nan}
+
+    occ = occ.copy()
     occ['routine_intensity'] = 1 - occ['nonroutine_total']
     valid = occ[occ['routine_intensity'].notna()]
+
+    if len(valid) == 0:
+        return {'correlation': np.nan, 'routine_mean_exposure': np.nan,
+                'nonroutine_mean_exposure': np.nan, 'routine_mean_wage': np.nan,
+                'nonroutine_mean_wage': np.nan}
 
     correlation = valid['routine_intensity'].corr(valid['ai_exposure'])
 
@@ -287,21 +377,25 @@ def routine_analysis(occ):
 
 def distributional_analysis(occ):
     """Analyze AI exposure by wage quintile."""
+    occ = occ.copy()
     occ['wage_quintile'] = pd.qcut(occ['A_MEAN'], 5, labels=['Q1', 'Q2', 'Q3', 'Q4', 'Q5'])
-    return occ.groupby('wage_quintile', observed=True).agg({
-        'ai_exposure': 'mean',
-        'TOT_EMP': 'sum',
-        'A_MEAN': 'mean',
-        'wage_at_risk': 'sum'
-    }).reset_index()
+
+    agg_cols = {'ai_exposure': 'mean', 'TOT_EMP': 'sum', 'A_MEAN': 'mean'}
+    if 'wage_at_risk' in occ.columns:
+        agg_cols['wage_at_risk'] = 'sum'
+
+    return occ.groupby('wage_quintile', observed=True).agg(agg_cols).reset_index()
 
 
-def save_results(occ, ar, kalecki, bm, routine):
-    """Save occupation-level data and model summary."""
-    # Occupation-level file
-    occ.to_csv(OUTPUT_DIR / "occupation_ai_exposure.csv", index=False)
+def save_results(occ_equal, occ_emp, ar_equal, ar_emp, kalecki_equal, kalecki_emp,
+                 bm_equal, bm_emp, routine_equal, routine_emp):
+    """Save occupation-level data and model summary for both specifications."""
 
-    # Model summary
+    # Occupation-level files
+    occ_equal.to_csv(OUTPUT_DIR / "occupation_ai_exposure_equal.csv", index=False)
+    occ_emp.to_csv(OUTPUT_DIR / "occupation_ai_exposure_empweighted.csv", index=False)
+
+    # Model summary - comparing both specifications
     summary = pd.DataFrame({
         'Model': [
             'Acemoglu-Restrepo', 'Acemoglu-Restrepo',
@@ -319,48 +413,133 @@ def save_results(occ, ar, kalecki, bm, routine):
             'Demand regime',
             'Output effect'
         ],
-        'Value': [
-            ar['task_displacement_share'],
-            ar['wage_effect'],
-            kalecki['wage_share_effect'],
-            kalecki['ad_effect'],
-            kalecki['emp_share_at_risk'],
-            bm['delta_profit_share'],
-            bm['delta_utilization'],
-            bm['regime'],
-            bm['output_effect']
+        'Equal_Split_Value': [
+            ar_equal['task_displacement_share'],
+            ar_equal['wage_effect'],
+            kalecki_equal['wage_share_effect'],
+            kalecki_equal['ad_effect'],
+            kalecki_equal['emp_share_at_risk'],
+            bm_equal['delta_profit_share'],
+            bm_equal['delta_utilization'],
+            bm_equal['regime'],
+            bm_equal['output_effect']
         ],
-        'Percent': [
-            f"{ar['task_displacement_share']*100:.2f}%",
-            f"{ar['wage_effect']*100:.2f}%",
-            f"{kalecki['wage_share_effect']*100:.2f}%",
-            f"{kalecki['ad_effect']*100:.2f}%",
-            f"{kalecki['emp_share_at_risk']*100:.2f}%",
-            f"{bm['delta_profit_share']*100:.2f}%",
-            f"{bm['delta_utilization']*100:.2f}%",
-            bm['regime'],
-            f"{bm['output_effect']*100:.2f}%"
+        'Equal_Split_Pct': [
+            f"{ar_equal['task_displacement_share']*100:.2f}%",
+            f"{ar_equal['wage_effect']*100:.2f}%",
+            f"{kalecki_equal['wage_share_effect']*100:.2f}%",
+            f"{kalecki_equal['ad_effect']*100:.2f}%",
+            f"{kalecki_equal['emp_share_at_risk']*100:.2f}%",
+            f"{bm_equal['delta_profit_share']*100:.2f}%",
+            f"{bm_equal['delta_utilization']*100:.2f}%",
+            bm_equal['regime'],
+            f"{bm_equal['output_effect']*100:.2f}%"
+        ],
+        'EmpWeighted_Value': [
+            ar_emp['task_displacement_share'],
+            ar_emp['wage_effect'],
+            kalecki_emp['wage_share_effect'],
+            kalecki_emp['ad_effect'],
+            kalecki_emp['emp_share_at_risk'],
+            bm_emp['delta_profit_share'],
+            bm_emp['delta_utilization'],
+            bm_emp['regime'],
+            bm_emp['output_effect']
+        ],
+        'EmpWeighted_Pct': [
+            f"{ar_emp['task_displacement_share']*100:.2f}%",
+            f"{ar_emp['wage_effect']*100:.2f}%",
+            f"{kalecki_emp['wage_share_effect']*100:.2f}%",
+            f"{kalecki_emp['ad_effect']*100:.2f}%",
+            f"{kalecki_emp['emp_share_at_risk']*100:.2f}%",
+            f"{bm_emp['delta_profit_share']*100:.2f}%",
+            f"{bm_emp['delta_utilization']*100:.2f}%",
+            bm_emp['regime'],
+            f"{bm_emp['output_effect']*100:.2f}%"
         ]
     })
     summary.to_csv(OUTPUT_DIR / "model_summary.csv", index=False)
 
+    # Sensitivity comparison
+    sensitivity = pd.DataFrame({
+        'Metric': [
+            'Task displacement share',
+            'Wage effect',
+            'Employment share at risk',
+            'AD effect'
+        ],
+        'Equal_Split': [
+            ar_equal['task_displacement_share'],
+            ar_equal['wage_effect'],
+            kalecki_equal['emp_share_at_risk'],
+            kalecki_equal['ad_effect']
+        ],
+        'Emp_Weighted': [
+            ar_emp['task_displacement_share'],
+            ar_emp['wage_effect'],
+            kalecki_emp['emp_share_at_risk'],
+            kalecki_emp['ad_effect']
+        ],
+        'Pct_Difference': [
+            100 * (ar_emp['task_displacement_share'] - ar_equal['task_displacement_share']) / ar_equal['task_displacement_share'] if ar_equal['task_displacement_share'] != 0 else 0,
+            100 * (ar_emp['wage_effect'] - ar_equal['wage_effect']) / ar_equal['wage_effect'] if ar_equal['wage_effect'] != 0 else 0,
+            100 * (kalecki_emp['emp_share_at_risk'] - kalecki_equal['emp_share_at_risk']) / kalecki_equal['emp_share_at_risk'] if kalecki_equal['emp_share_at_risk'] != 0 else 0,
+            100 * (kalecki_emp['ad_effect'] - kalecki_equal['ad_effect']) / kalecki_equal['ad_effect'] if kalecki_equal['ad_effect'] != 0 else 0
+        ]
+    })
+    sensitivity.to_csv(OUTPUT_DIR / "sensitivity_equal_vs_empweighted.csv", index=False)
+
+    print(f"\nResults saved to {OUTPUT_DIR}/")
+    print(f"  - occupation_ai_exposure_equal.csv (MAIN specification)")
+    print(f"  - occupation_ai_exposure_empweighted.csv (robustness)")
+    print(f"  - model_summary.csv")
+    print(f"  - sensitivity_equal_vs_empweighted.csv")
+
 
 def main():
-    """Run all model estimations."""
-    # Load and prepare data
+    """Run all model estimations for both exposure specifications."""
+    print("Loading crosswalk data...")
     df = load_crosswalk()
-    occ = calculate_occupation_exposure(df)
 
-    # Estimate models
-    ar_results = acemoglu_restrepo_model(occ)
-    kalecki_results = kaleckian_model(occ, ar_results)
-    bm_results = bhaduri_marglin_model(occ, ar_results)
-    routine_results = routine_analysis(occ)
+    # --- MAIN SPECIFICATION: Equal split ---
+    print("\n=== MAIN SPECIFICATION: Equal-split allocation ===")
+    occ_equal = calculate_occupation_exposure_equal(df)
+    print(f"  - {len(occ_equal)} occupations with wage data")
 
-    # Save
-    save_results(occ, ar_results, kalecki_results, bm_results, routine_results)
+    ar_equal, occ_equal = acemoglu_restrepo_model(occ_equal)
+    kalecki_equal, occ_equal = kaleckian_model(occ_equal, ar_equal)
+    bm_equal = bhaduri_marglin_model(occ_equal, ar_equal)
+    routine_equal = routine_analysis(occ_equal)
 
-    return ar_results, kalecki_results, bm_results, routine_results
+    print(f"  - Task displacement: {ar_equal['task_displacement_share']*100:.2f}%")
+    print(f"  - Wage effect: {ar_equal['wage_effect']*100:.2f}%")
+
+    # --- ROBUSTNESS: Employment-weighted ---
+    print("\n=== ROBUSTNESS: Employment-weighted allocation ===")
+    occ_emp = calculate_occupation_exposure_empweighted(df)
+    print(f"  - {len(occ_emp)} occupations with wage data")
+
+    ar_emp, occ_emp = acemoglu_restrepo_model(occ_emp)
+    kalecki_emp, occ_emp = kaleckian_model(occ_emp, ar_emp)
+    bm_emp = bhaduri_marglin_model(occ_emp, ar_emp)
+    routine_emp = routine_analysis(occ_emp)
+
+    print(f"  - Task displacement: {ar_emp['task_displacement_share']*100:.2f}%")
+    print(f"  - Wage effect: {ar_emp['wage_effect']*100:.2f}%")
+
+    # --- Sensitivity comparison ---
+    print("\n=== Sensitivity: Equal vs Employment-weighted ===")
+    disp_diff = 100 * (ar_emp['task_displacement_share'] - ar_equal['task_displacement_share']) / ar_equal['task_displacement_share'] if ar_equal['task_displacement_share'] != 0 else 0
+    print(f"  - Task displacement difference: {disp_diff:+.1f}%")
+
+    # Save all results
+    save_results(occ_equal, occ_emp, ar_equal, ar_emp, kalecki_equal, kalecki_emp,
+                 bm_equal, bm_emp, routine_equal, routine_emp)
+
+    return {
+        'equal': {'ar': ar_equal, 'kalecki': kalecki_equal, 'bm': bm_equal, 'routine': routine_equal},
+        'empweighted': {'ar': ar_emp, 'kalecki': kalecki_emp, 'bm': bm_emp, 'routine': routine_emp}
+    }
 
 
 if __name__ == '__main__':

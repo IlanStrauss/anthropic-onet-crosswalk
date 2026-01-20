@@ -51,7 +51,7 @@ Where:
 
 ---
 
-## 3. Data
+## 3. Data & Methodology
 
 ### From Anthropic API / O*NET / BLS
 
@@ -64,6 +64,19 @@ Where:
 | `A_MEAN` | Mean annual wage per occupation | BLS OEWS |
 | `wage_bill` | `TOT_EMP × A_MEAN` | Calculated |
 | `wage_share` | Occupation's share of total wage bill | Calculated |
+
+### Handling Ambiguous Task→SOC Mappings
+
+Because O*NET task statements can be shared across multiple occupations, a subset of Anthropic task strings maps to multiple SOCs. We handle this as follows:
+
+**Main specification (Equal-split):** When a task maps to N occupations, allocate 1/N of usage to each.
+
+**Robustness check (Employment-weighted):** Allocate usage proportional to occupation employment.
+
+| Metric | Value |
+|--------|-------|
+| Anthropic tasks with ambiguous mappings | 97 (4.6%) |
+| API usage in ambiguous tasks | 7.9% |
 
 ### Calculation Steps
 
@@ -78,12 +91,23 @@ Where:
 
 ## 4. Results
 
+### Main Specification (Equal-Split Allocation)
+
 | Metric | Value | Meaning |
 |--------|-------|---------|
 | **Wage-weighted task displacement** | 0.34% | Share of US wage bill in AI-exposed tasks |
 | **Predicted wage effect (σ=1.5)** | -0.11% | Aggregate wage level decline (economy-wide average) |
-| **Employment-weighted exposure** | 0.27% | Share of US employment in AI-exposed tasks |
-| **Total wage bill analyzed** | $11.9 trillion | Sum of all occupation wages |
+| **Employment-weighted exposure** | 0.26% | Share of US employment in AI-exposed tasks |
+| **Occupations with wage data** | 558 | Coverage of US occupational structure |
+
+### Robustness Check (Employment-Weighted Allocation)
+
+| Metric | Equal-Split | Emp-Weighted | Difference |
+|--------|-------------|--------------|------------|
+| Task displacement | 0.34% | 0.34% | +2.2% |
+| Wage effect | -0.11% | -0.11% | +2.2% |
+
+**Interpretation:** Results are robust to the choice of allocation method for ambiguous tasks. The employment-weighted specification yields slightly higher estimates (+2.2%), but qualitative conclusions are unchanged.
 
 ---
 
@@ -100,7 +124,7 @@ Where:
 
 - **0.34% of the US wage bill** is currently in tasks performed by Claude API
 - This is a **modest effect** reflecting early-stage LLM adoption
-- Employment-weighted exposure (0.27%) < wage-weighted (0.34%) → AI tasks skew toward **higher-wage occupations**
+- Employment-weighted exposure (0.26%) < wage-weighted (0.34%) → AI tasks skew toward **higher-wage occupations**
 
 ### Caveats
 
@@ -117,8 +141,8 @@ Where:
 | Model | Effect | Why different |
 |-------|--------|---------------|
 | **Acemoglu-Restrepo** | -0.11% | Supply-side only |
-| Kaleckian | -0.46% | Adds demand effects |
-| Bhaduri-Marglin | -0.75% | Adds investment feedbacks |
+| Kaleckian | -0.45% | Adds demand effects |
+| Bhaduri-Marglin | -0.73% | Adds investment feedbacks |
 
 ---
 

@@ -1,0 +1,10 @@
+Stage,Value,Percent_of_Total
+Total Anthropic API usage (filtered),857653.0,100.0%
+Matched usage (unique tasks),830106.0,96.79%
+Matched usage (after equal split),830106.0,96.79%
+Unmatched usage,27547.0,3.21%
+Matched + Unmatched (should equal Total),857653.0,100.00%
+Unique matched task descriptions,2111,93.78%
+Ambiguous task descriptions (multi-SOC),97,4.59%
+Total rows in crosswalk (after expansion),2653,N/A
+Conservation check (split total = unique matched),PASS,N/A

@@ -62,7 +62,7 @@ u* = (g₀ + g_π × π) / (s_π × π - g_u)
 
 ---
 
-## 3. Data
+## 3. Data & Methodology
 
 ### Variables from Our Data
 
@@ -92,6 +92,19 @@ u* = (g₀ + g_π × π) / (s_π × π - g_u)
 - `g_u = 0.10`: 1% higher utilization → 0.1% more investment
 - `g_π = 0.05`: 1pp higher profit share → 0.05% more investment
 
+### Handling Ambiguous Task→SOC Mappings
+
+Because O*NET task statements can be shared across multiple occupations, a subset of Anthropic task strings maps to multiple SOCs. We handle this as follows:
+
+**Main specification (Equal-split):** When a task maps to N occupations, allocate 1/N of usage to each.
+
+**Robustness check (Employment-weighted):** Allocate usage proportional to occupation employment.
+
+| Metric | Value |
+|--------|-------|
+| Anthropic tasks with ambiguous mappings | 97 (4.6%) |
+| API usage in ambiguous tasks | 7.9% |
+
 ### Calculation Steps
 
 ```
@@ -116,25 +129,36 @@ u* = (g₀ + g_π × π) / (s_π × π - g_u)
 
 ## 4. Results
 
+### Main Specification (Equal-Split Allocation)
+
 | Metric | Value | Meaning |
 |--------|-------|---------|
 | **Baseline profit share** | 45.0% | Pre-AI profit share |
 | **New profit share** | 45.3% | Post-AI profit share |
 | **Change in profit share** | +0.34% | AI-driven redistribution |
-| **Equilibrium utilization (before)** | 51.2% | Pre-AI capacity utilization |
-| **Equilibrium utilization (after)** | 50.6% | Post-AI capacity utilization |
-| **Change in utilization** | -0.60% | Utilization decline |
+| **Change in utilization** | -0.58% | Utilization decline |
 | **Demand regime** | **WAGE-LED** | Consumption dominates investment |
-| **Output effect** | -0.75% | Economy-wide output decline |
-| **∂u*/∂π** | -1.76 | Regime indicator (negative = wage-led) |
+| **Output effect** | -0.73% | Economy-wide output decline |
+| **Occupations with wage data** | 558 | Coverage of US occupational structure |
+
+### Robustness Check (Employment-Weighted Allocation)
+
+| Metric | Equal-Split | Emp-Weighted | Difference |
+|--------|-------------|--------------|------------|
+| Change in profit share | 0.34% | 0.34% | +2.2% |
+| Change in utilization | -0.58% | -0.59% | +2.3% |
+| Output effect | -0.73% | -0.74% | +2.3% |
+| Demand regime | Wage-led | Wage-led | Same |
+
+**Interpretation:** Results are robust to the choice of allocation method for ambiguous tasks. The employment-weighted specification yields slightly higher estimates (+2.3%), but qualitative conclusions are unchanged. Both specifications confirm the economy is **wage-led**.
 
 ---
 
 ## 5. Results Interpretation
 
-### What the -0.75% output effect means
+### What the -0.73% output effect means
 
-- If AI-exposed wages were fully displaced to profits, **output would fall by 0.75%**
+- If AI-exposed wages were fully displaced to profits, **output would fall by 0.73%**
 - This is the **largest effect** across all three models
 - The economy is confirmed to be **wage-led**: consumption loss > investment gain
 
@@ -143,8 +167,8 @@ u* = (g₀ + g_π × π) / (s_π × π - g_u)
 | Model | Effect | Channels captured |
 |-------|--------|-------------------|
 | Acemoglu-Restrepo | -0.11% | Task displacement |
-| Kaleckian | -0.46% | + Consumption + multiplier |
-| **Bhaduri-Marglin** | **-0.75%** | + Investment feedbacks |
+| Kaleckian | -0.45% | + Consumption + multiplier |
+| **Bhaduri-Marglin** | **-0.73%** | + Investment feedbacks |
 
 The Bhaduri-Marglin effect is larger because:
 1. It includes **investment response** to lower utilization (g_u × Δu)
@@ -153,7 +177,7 @@ The Bhaduri-Marglin effect is larger because:
 
 ### Regime determination
 
-**∂u*/∂π = -1.76 < 0** confirms:
+**∂u*/∂π < 0** confirms:
 - **Consumption channel dominates** investment channel
 - US economy is **wage-led in demand**
 - AI-driven profit share increase is **contractionary**
@@ -184,6 +208,18 @@ For stable equilibrium: `s_π × π - g_u > 0`
 With our parameters: `0.45 × 0.45 - 0.10 = 0.1025 > 0` ✓
 
 Keynesian stability holds: savings more responsive than investment.
+
+---
+
+## 6. Model Comparison Summary
+
+| Model | Effect | Sensitivity | Key Channel |
+|-------|--------|-------------|-------------|
+| Acemoglu-Restrepo | -0.11% | +2.2% | Task displacement |
+| Kaleckian | -0.45% | +2.2% | Consumption + multiplier |
+| Bhaduri-Marglin | -0.73% | +2.3% | Investment feedbacks |
+
+All models show **stable results** across allocation methods, with employment-weighted yielding slightly higher estimates. The **progressive amplification** from mainstream to heterodox models highlights the importance of demand-side and investment channels often ignored in conventional analysis.
 
 ---
 
