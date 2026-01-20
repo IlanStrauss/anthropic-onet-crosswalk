@@ -2,20 +2,21 @@
 
 ## Key Findings
 
-| Metric | Value |
-|--------|-------|
-| **Wage-weighted task displacement** | 0.34% |
-| **Predicted wage effect (σ=1.5)** | -0.11% |
-| **Employment-weighted exposure** | 0.27% |
-| **Total wage bill analyzed** | $11.9 trillion |
+| Metric | Value | Meaning |
+|--------|-------|---------|
+| **Wage-weighted task displacement** | 0.34% | Share of US wage bill in AI-exposed tasks |
+| **Predicted wage effect (σ=1.5)** | -0.11% | Aggregate wage level decline (economy-wide average) |
+| **Employment-weighted exposure** | 0.27% | Share of US employment in AI-exposed tasks |
+| **Total wage bill analyzed** | $11.9 trillion | Sum of all occupation wages (TOT_EMP × A_MEAN) |
 
 ### Interpretation
 
 Based on Anthropic API usage data linked to O*NET occupations and BLS wages:
 
 - **0.34% of the total US wage bill** is in tasks currently being performed by Claude API
-- Applying the Acemoglu-Restrepo formula with σ=1.5, this implies a **potential wage decline of 0.11%** if these tasks were fully displaced
-- This is a **modest effect** reflecting the current early stage of LLM adoption
+- Applying the Acemoglu-Restrepo formula with σ=1.5, this implies a **0.11% decline in the aggregate wage level** if these tasks were fully displaced
+- This is an **economy-wide average effect**, not per-worker: if the model's assumptions held, average wages across all US workers would fall by 0.11%
+- Workers in directly exposed occupations would experience larger effects; workers in unaffected occupations would see smaller or no effects
 - The employment-weighted exposure (0.27%) is slightly lower than wage-weighted (0.34%), indicating AI tasks skew toward higher-wage occupations
 
 ### Caveats
