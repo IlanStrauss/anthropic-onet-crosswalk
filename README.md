@@ -3,7 +3,7 @@
 **Author:** Ilan Strauss | AI Disclosures Project
 **Date:** January 2026
 **Contact:** ilan@aidisclosures.org
-**Repository:** https://github.com/IlanStrauss/anthropic-econ-critique
+**Repository:** https://github.com/IlanStrauss/anthropic-onet-crosswalk
 
 ---
 
@@ -507,34 +507,38 @@ This crosswalk follows conventions established in the labor economics literature
 ## 6. File Structure
 
 ```
-data/
-├── onet/
-│   ├── README.md                              # This documentation
-│   ├── THEORETICAL_FRAMEWORK.md               # Economic theory guide
-│   │
-│   ├── raw/
-│   │   ├── onet_db.zip                       # Original O*NET download
-│   │   └── db_29_1_text/                     # Extracted O*NET files
-│   │       ├── Task Statements.txt           # 19,265 tasks
-│   │       ├── Occupation Data.txt           # 1,016 occupations
-│   │       ├── Job Zones.txt                 # Job zone assignments
-│   │       ├── Education, Training, and Experience.txt
-│   │       ├── Task Ratings.txt              # IM and RT scales
-│   │       ├── Tasks to DWAs.txt             # Task-DWA mapping
-│   │       ├── DWA Reference.txt             # DWA definitions
-│   │       ├── IWA Reference.txt             # IWA definitions
-│   │       ├── Work Activities.txt           # Activity scores
-│   │       └── [32 additional O*NET files]
-│   │
-│   ├── processed/
-│   │   ├── master_task_crosswalk_with_wages.csv  # PRIMARY OUTPUT
-│   │   ├── master_task_crosswalk.csv             # Without BLS wages
-│   │   ├── unmatched_tasks.csv                   # Failed matches
-│   │   ├── fuzzy_matches_review.csv              # QA file
-│   │   └── soc_codes_for_bls.csv                 # SOC lookup
-│   │
-│   └── scripts/
-│       └── build_crosswalk.py                # Reproducible build
+anthropic-onet-crosswalk/
+├── README.md                              # This documentation
+├── THEORETICAL_FRAMEWORK.md               # Economic theory guide
+│
+├── raw/
+│   ├── onet_db.zip                       # Original O*NET download
+│   └── db_29_1_text/                     # Extracted O*NET files
+│       ├── Task Statements.txt           # 19,265 tasks
+│       ├── Occupation Data.txt           # 1,016 occupations
+│       ├── Job Zones.txt                 # Job zone assignments
+│       ├── Education, Training, and Experience.txt
+│       ├── Task Ratings.txt              # IM and RT scales
+│       ├── Tasks to DWAs.txt             # Task-DWA mapping
+│       ├── DWA Reference.txt             # DWA definitions
+│       ├── IWA Reference.txt             # IWA definitions
+│       ├── Work Activities.txt           # Activity scores
+│       └── [32 additional O*NET files]
+│
+├── processed/
+│   ├── master_task_crosswalk_with_wages.csv  # PRIMARY OUTPUT
+│   ├── master_task_crosswalk.csv             # Without BLS wages
+│   ├── unmatched_tasks.csv                   # Failed matches
+│   ├── fuzzy_matches_review.csv              # QA file
+│   └── soc_codes_for_bls.csv                 # SOC lookup
+│
+├── analysis/
+│   ├── occupation_ai_exposure.csv            # Occupation-level analysis
+│   └── model_summary.csv                     # Model estimation results
+│
+├── scripts/
+│   ├── build_crosswalk.py                    # Reproducible build
+│   └── estimate_models.py                    # Theoretical models
 │
 └── BLS/
     ├── oesm24all.zip                         # Original BLS download
@@ -562,8 +566,11 @@ openpyxl
 pip install pandas rapidfuzz openpyxl
 
 # Run build script
-cd data/onet/scripts
+cd scripts
 python build_crosswalk.py
+
+# Run theoretical models
+python estimate_models.py
 ```
 
 ### 7.3 Data Downloads
@@ -608,7 +615,7 @@ This crosswalk enables linkage to many external datasets via SOC code:
   title = {Anthropic API Task to O*NET-BLS Crosswalk Dataset},
   year = {2026},
   publisher = {AI Disclosures Project},
-  url = {https://github.com/IlanStrauss/anthropic-econ-critique}
+  url = {https://github.com/IlanStrauss/anthropic-onet-crosswalk}
 }
 ```
 
