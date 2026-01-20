@@ -2,67 +2,75 @@
 
 This directory contains three theoretical frameworks for analyzing the labor market effects of AI, applied to Anthropic Claude API task exposure data.
 
+**Important limitations:**
+- Claude API usage measures **where Claude is used**, not tasks actually displaced
+- Usage may reflect **complementarity** (productivity gains) as much as **substitution**
+- All models assume 100% displacement (α=1) as a pessimistic upper bound
+
 ---
 
 ## Model Overview
 
 | Model | School | Key Effect | Baseline Result |
 |-------|--------|------------|-----------------|
-| [Acemoglu-Restrepo](acemoglu_restrepo/) | Neoclassical | Wage displacement | **-0.11%** |
-| [Kaleckian](kaleckian/) | Post-Keynesian | Aggregate demand | **-0.45%** |
-| [Bhaduri-Marglin](bhaduri_marglin/) | Post-Keynesian | Output (with investment) | **-0.73%** |
+| [Acemoglu-Restrepo](acemoglu_restrepo/) | Neoclassical | Wage (pessimistic) | **-0.11%** |
+| [Kaleckian](kaleckian/) | Post-Keynesian | Aggregate demand | **-0.19%** |
+| [Bhaduri-Marglin](bhaduri_marglin/) | Post-Keynesian | Output (with investment) | **-0.39%** |
 
 ---
 
 ## Core Findings
 
-### 1. Acemoglu-Restrepo (Mainstream)
+### 1. Acemoglu-Restrepo Inspired (Mainstream Benchmark)
 
-**What it models:** Task displacement under full employment
+**What it models:** Supply-side task displacement under full employment
 
-**Key equation:** `Δln(w) = -[(σ-1)/σ] × task_displacement_share`
+**Key equation:** `Δln(w) = φ - [(σ-1)/σ] × α × exposure_share`
 
-**Finding:** 0.34% of the US wage bill is in AI-exposed tasks → **-0.11% wage effect**
+**Finding:** 0.34% of US wage bill is in AI-used tasks → **-0.11% wage effect** (under α=1, φ=0)
 
-**Limitation:** Assumes workers instantly reallocate to new tasks (no unemployment)
+**Limitation:** Usage ≠ displacement; effect could be zero or positive if AI complements labor
 
 ---
 
-### 2. Kaleckian (Heterodox)
+### 2. Kaleckian (Post-Keynesian)
 
 **What it models:** Aggregate demand effects of income redistribution
 
 **Key insight:** Workers spend more than capitalists (c_w > c_π), so shifting income to profits reduces consumption
 
-**Finding:** AI-driven wage displacement → **-0.45% AD effect** (4x larger than A-R)
+**Finding:** AI-driven wage displacement → **-0.19% AD effect** (1.7x larger than A-R)
 
-**Why larger:** Captures consumption channel + Keynesian multiplier (3.33x)
+**Corrections applied:**
+- Δω correctly converts wage fraction to income share change
+- Multiplier derived from class MPCs: κ ≈ 2.04 (not exogenous 3.33)
 
 ---
 
-### 3. Bhaduri-Marglin (Heterodox)
+### 3. Bhaduri-Marglin (Post-Keynesian)
 
 **What it models:** Endogenous regime determination (wage-led vs profit-led)
 
 **Key insight:** Investment responds to both utilization AND profit share
 
-**Finding:** US economy is **wage-led** → AI redistribution is contractionary → **-0.73% output effect**
+**Finding:** US economy is **wage-led** → AI redistribution is contractionary → **-0.39% output effect**
 
-**Why largest:** Adds investment feedback loop on top of Kaleckian channels
+**Corrections applied:**
+- Worker saving (s_w=0.08) added for genuine regime determination
+- g₀ calibrated to hit baseline utilization (80%)
+- Delta profit share correctly converts wage fraction to income share
 
 ---
 
 ## Why Results Differ
 
 ```
-Acemoglu-Restrepo: -0.11%  ← Supply-side only (task reallocation)
-         ↓ +0.34%
-Kaleckian:         -0.45%  ← + Consumption reduction + multiplier
-         ↓ +0.28%
-Bhaduri-Marglin:   -0.73%  ← + Investment feedbacks
+Acemoglu-Restrepo: -0.11%  ← Supply-side only (pessimistic displacement)
+Kaleckian:         -0.19%  ← + Consumption channel + derived multiplier
+Bhaduri-Marglin:   -0.39%  ← + Investment feedbacks
 ```
 
-The **progressive amplification** from mainstream to heterodox models shows demand-side and investment channels are quantitatively important.
+All three models show contractionary effects under the assumed 100% displacement scenario.
 
 ---
 
@@ -74,29 +82,29 @@ AI could shift structural parameters, not just displace tasks. We test how resul
 
 | σ | Description | Wage Effect |
 |---|-------------|-------------|
-| 1.0 | Cobb-Douglas | 0.00% |
+| 1.0 | Cobb-Douglas (displacement term vanishes) | 0.00% |
 | **1.5** | **Baseline** | **-0.11%** |
-| 2.5 | AI raises substitutability | -0.20% |
+| 2.5 | Higher substitutability | -0.20% |
 
 ### Kaleckian: Marginal Propensities to Consume
 
-| Scenario | AD Effect |
-|----------|-----------|
-| Workers save more (precarity) | 0.23% |
-| **Baseline** | **0.45%** |
-| AI concentrates profits in low-spending firms | 0.39% |
+| Scenario | AD Effect | Derived κ |
+|----------|-----------|-----------|
+| Workers save more (precarity) | -0.13% | 1.85 |
+| **Baseline** | **-0.19%** | **2.04** |
+| AI concentrates profits in low-spending firms | -0.25% | 2.12 |
 
 ### Bhaduri-Marglin: Investment & Saving Parameters
 
 | Scenario | Output Effect | Regime |
 |----------|---------------|--------|
-| Best case (weak accelerator) | -0.29% | wage-led |
-| **Baseline** | **-0.73%** | **wage-led** |
-| Worst case (intensified wage-led) | -4.08% | wage-led |
+| Best case (high g_π) | -0.23% | wage-led |
+| **Baseline** | **-0.39%** | **wage-led** |
+| Worst case (strong accelerator) | -0.58% | wage-led |
 
 ### Key Finding: Robust Wage-Led Regime
 
-**All 9 B-M scenarios remain wage-led.** Even aggressive parameter shifts toward profit-led dynamics don't flip the regime. The US economy appears deeply wage-led in its structural parameters.
+**All 11 B-M scenarios remain wage-led.** With worker saving (s_w=0.08), the regime is genuinely endogenous, but parameter ranges within Post-Keynesian literature don't flip to profit-led.
 
 ---
 
@@ -105,8 +113,8 @@ AI could shift structural parameters, not just displace tasks. We test how resul
 | Model | Baseline | Min | Max | Key Driver |
 |-------|----------|-----|-----|------------|
 | Acemoglu-Restrepo | -0.11% | 0.00% | -0.20% | σ (substitutability) |
-| Kaleckian | -0.45% | 0.23% | 0.45% | MPC differential |
-| Bhaduri-Marglin | -0.73% | -0.29% | -4.08% | Investment parameters |
+| Kaleckian | -0.19% | -0.13% | -0.25% | MPC differential |
+| Bhaduri-Marglin | -0.39% | -0.23% | -0.58% | s_w, s_π, g_u, g_π |
 
 ---
 
@@ -128,7 +136,7 @@ See `data/analysis/` for output files:
 
 ## References
 
-**Mainstream:**
+**Neoclassical:**
 - Acemoglu & Restrepo (2018, 2019, 2022)
 
 **Post-Keynesian:**

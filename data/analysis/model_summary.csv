@@ -2,9 +2,9 @@ Model,Metric,Equal_Split_Value,Equal_Split_Pct,EmpWeighted_Value,EmpWeighted_Pct
 Acemoglu-Restrepo,Wage-weighted task displacement,0.003354829177377593,0.34%,0.0034274809832612173,0.34%
 Acemoglu-Restrepo,Predicted wage effect (σ=1.5),-0.0011182763924591976,-0.11%,-0.0011424936610870723,-0.11%
 Kaleckian,Wage share reduction,0.0033548291773775937,0.34%,0.003427480983261217,0.34%
-Kaleckian,"AD effect (wage-led, with multiplier)",0.004473105569836791,0.45%,0.004569974644348289,0.46%
+Kaleckian,"AD effect (wage-led, with multiplier)",-0.0019422695237449235,-0.19%,-0.0019843310955722842,-0.20%
 Kaleckian,Employment share at risk,0.002623596212077676,0.26%,0.0026679542208250646,0.27%
-Bhaduri-Marglin,Change in profit share,0.0033548291773775937,0.34%,0.003427480983261217,0.34%
-Bhaduri-Marglin,Change in capacity utilization,-0.005821629236445691,-0.58%,-0.005945832837934928,-0.59%
+Bhaduri-Marglin,Change in profit share,0.0018451560475576767,0.18%,0.0018851145407936694,0.19%
+Bhaduri-Marglin,Change in capacity utilization,-0.0030839790534932243,-0.31%,-0.00315044889377436,-0.32%
 Bhaduri-Marglin,Demand regime,wage-led,wage-led,wage-led,wage-led
-Bhaduri-Marglin,Output effect,-0.007277036545557114,-0.73%,-0.00743229104741866,-0.74%
+Bhaduri-Marglin,Output effect,-0.0038549738168665304,-0.39%,-0.00393806111721795,-0.39%

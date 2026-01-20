@@ -39,17 +39,35 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 # Kaleckian parameters (from literature: Stockhammer 2011, Onaran & Galanis 2014)
 C_W = 0.80   # Marginal propensity to consume out of wages
 C_PI = 0.40  # Marginal propensity to consume out of profits
-AVG_C = 0.70 # Aggregate consumption propensity (for multiplier)
+# NOTE: Multiplier is now derived from class MPCs and distribution (see kaleckian_model)
 
-# Acemoglu-Restrepo parameter
+# Acemoglu-Restrepo parameters
 SIGMA = 1.5  # Elasticity of substitution between tasks
+# NOTE: Higher σ means tasks are MORE substitutable (easier to replace labor with capital)
+# At σ=1 (Cobb-Douglas), task displacement has zero wage effect
+# As σ→∞, wage effect approaches -exposure_share
+ALPHA = 1.0  # Displacement rate: fraction of exposed wage bill actually displaced (0-1)
+             # α=1.0 is pessimistic "full displacement" assumption
+             # Claude usage may represent complementarity, not displacement
+PHI = 0.0    # Productivity effect: offsetting productivity gains in remaining tasks
+             # A-R framework includes both displacement (-) and productivity (+) effects
+             # We set φ=0 as pessimistic case (no offsetting productivity gains)
 
 # Bhaduri-Marglin parameters (from literature: Stockhammer 2017, Onaran & Galanis 2014)
+# CORRECTED: Now includes worker saving (s_w) for genuine regime determination
+S_W = 0.08   # Propensity to save out of wages (s_w) - Onaran & Galanis (2014): 0.05-0.15
 S_PI = 0.45  # Propensity to save out of profits (s_π)
 G_U = 0.10   # Investment sensitivity to capacity utilization (g_u)
 G_PI = 0.05  # Investment sensitivity to profit share (g_π)
-G_0 = 0.03   # Autonomous investment rate (g₀)
 U_BASELINE = 0.80  # Baseline capacity utilization (80%)
+WAGE_SHARE_BASELINE = 0.55  # US wage share (for profit share calculation)
+
+# CALIBRATED: g_0 set to hit U_BASELINE at baseline profit share
+# u* = (g_0 + g_π×π) / (σ(π) - g_u) where σ(π) = s_w×(1-π) + s_π×π
+# Solving: g_0 = u_baseline × (σ(π_0) - g_u) - g_π × π_0
+_PI_BASELINE = 1 - WAGE_SHARE_BASELINE  # 0.45
+_SIGMA_BASELINE = S_W * WAGE_SHARE_BASELINE + S_PI * _PI_BASELINE  # Aggregate saving rate
+G_0 = U_BASELINE * (_SIGMA_BASELINE - G_U) - G_PI * _PI_BASELINE  # Calibrated to hit u*=0.80
 
 
 def load_crosswalk():
@@ -170,12 +188,26 @@ def calculate_occupation_exposure_empweighted(df):
 
 def acemoglu_restrepo_model(occ):
     """
-    MAINSTREAM MODEL: Acemoglu-Restrepo Task Displacement
+    MAINSTREAM BENCHMARK: Acemoglu-Restrepo Inspired Task Model
 
-    Theory: Production uses continuum of tasks. AI automates some,
-    creating displacement effect on labor demand.
+    IMPORTANT CAVEATS (per ChatGPT review):
+    - This is a DIDACTIC REDUCED-FORM PROXY, not the exact A-R framework
+    - Claude API usage measures WHERE Claude is used, not tasks DISPLACED to capital
+    - Usage may reflect COMPLEMENTARITY (productivity gains) as much as SUBSTITUTION
+    - True A-R has both: Net = Productivity Effect - Displacement Effect
+    - We report φ=0 (no productivity gains) as PESSIMISTIC upper bound on displacement
 
-    Δln(w) = -[(σ-1)/σ] × task_displacement_share
+    Our proxy equation:
+        Δln(w) = φ - [(σ-1)/σ] × α × exposure_share
+
+    Where:
+        φ = productivity effect (set to 0, pessimistic)
+        σ = elasticity of substitution (higher = more substitutable)
+        α = displacement rate (fraction of exposed tasks actually displaced)
+        exposure_share = wage-weighted AI usage exposure
+
+    At σ=1 (Cobb-Douglas): displacement term vanishes (workers reallocate)
+    As σ→∞: wage effect approaches -α × exposure_share
 
     Returns dict with key estimates.
     """
@@ -187,20 +219,29 @@ def acemoglu_restrepo_model(occ):
     occ['wage_share'] = occ['wage_bill'] / total_wage_bill
     occ['emp_share'] = occ['TOT_EMP'] / occ['TOT_EMP'].sum()
 
-    # Task displacement share (wage-weighted)
-    task_displacement = (occ['wage_share'] * occ['ai_exposure']).sum()
+    # AI-usage-weighted exposure share (NOT displacement - Claude usage may be complementary)
+    exposure_share = (occ['wage_share'] * occ['ai_exposure']).sum()
 
     # Employment-weighted exposure
     emp_weighted = (occ['emp_share'] * occ['ai_exposure']).sum()
 
-    # Wage effect using A-R formula
-    wage_effect = -((SIGMA - 1) / SIGMA) * task_displacement
+    # Wage effect: Productivity - Displacement (with α and φ parameters)
+    # Displacement term: -[(σ-1)/σ] × α × exposure
+    # Productivity term: +φ × exposure (set to 0 as pessimistic case)
+    displacement_effect = -((SIGMA - 1) / SIGMA) * ALPHA * exposure_share
+    productivity_effect = PHI * exposure_share
+    wage_effect = productivity_effect + displacement_effect
 
     return {
-        'task_displacement_share': task_displacement,
+        'exposure_share': exposure_share,  # Renamed from task_displacement_share
+        'task_displacement_share': exposure_share,  # Keep for backwards compat
         'emp_weighted_exposure': emp_weighted,
         'wage_effect': wage_effect,
+        'displacement_effect': displacement_effect,
+        'productivity_effect': productivity_effect,
         'sigma': SIGMA,
+        'alpha': ALPHA,
+        'phi': PHI,
         'total_wage_bill': total_wage_bill
     }, occ
 
@@ -209,11 +250,21 @@ def kaleckian_model(occ, ar_results):
     """
     HETERODOX MODEL: Kaleckian Wage Share / Aggregate Demand
 
+    CORRECTED VERSION (per ChatGPT review):
+    1. Δω is now correctly computed as wage_fraction × ω₀ (change in wage SHARE of income)
+    2. Multiplier is derived from class MPCs: c = c_w×ω + c_π×(1-ω)
+    3. Signs are consistent (negative AD effect = contractionary)
+
     Theory: Aggregate demand depends on income distribution.
     C = c_w × W + c_π × Π, where c_w > c_π (workers spend more)
 
-    If wage share falls: consumption falls, AD falls (in wage-led regime).
-    Multiplier amplifies the effect.
+    Model closure: Y = C(Y,ω) + I + G + NX
+    - Closed economy (NX=0)
+    - I, G held constant
+    - This is a "demand-side stress test", not a regime identification
+
+    Under the standard Post-Keynesian assumption c_w > c_π, redistribution from
+    wages to profits reduces consumption and aggregate demand.
 
     Returns dict with key estimates.
     """
@@ -223,15 +274,25 @@ def kaleckian_model(occ, ar_results):
     # Wage bill at risk (exposure-weighted)
     occ['wage_at_risk'] = occ['wage_bill'] * occ['ai_exposure']
     wage_at_risk = occ['wage_at_risk'].sum()
-    wage_share_effect = wage_at_risk / total_wage_bill
+    wage_fraction_at_risk = wage_at_risk / total_wage_bill  # Fraction of wages displaced
 
-    # Consumption effect: ΔC = (c_w - c_π) × Δω
-    consumption_effect = (C_W - C_PI) * wage_share_effect
+    # CORRECTED: Convert wage fraction to change in wage SHARE of income
+    # Δω = -ω₀ × (wage_at_risk / W) = -ω₀ × wage_fraction_at_risk
+    # (Negative because wages fall, profit share rises)
+    delta_omega = -WAGE_SHARE_BASELINE * wage_fraction_at_risk
 
-    # Keynesian multiplier: κ = 1/(1-c)
-    multiplier = 1 / (1 - AVG_C)
+    # CORRECTED: Derive multiplier from class MPCs and distribution
+    # Aggregate MPC: c = c_w × ω + c_π × (1-ω)
+    aggregate_mpc = C_W * WAGE_SHARE_BASELINE + C_PI * (1 - WAGE_SHARE_BASELINE)
+    multiplier = 1 / (1 - aggregate_mpc)  # ~2.04 with baseline parameters
 
-    # Total AD effect with multiplier
+    # Consumption effect: ΔC/Y = (c_w - c_π) × Δω
+    # Note: since Δω is negative (wages fall), and (c_w - c_π) > 0,
+    # consumption_effect is negative (contractionary)
+    consumption_effect = (C_W - C_PI) * delta_omega
+
+    # Total AD effect with multiplier (ΔY/Y)
+    # Negative value means contractionary
     ad_effect = consumption_effect * multiplier
 
     # Employment at risk
@@ -241,14 +302,18 @@ def kaleckian_model(occ, ar_results):
 
     return {
         'wage_at_risk': wage_at_risk,
-        'wage_share_effect': wage_share_effect,
+        'wage_fraction_at_risk': wage_fraction_at_risk,  # For transparency
+        'wage_share_effect': wage_fraction_at_risk,  # Keep for backwards compat (now correctly named)
+        'delta_omega': delta_omega,  # CORRECTED: actual change in wage share of income
         'consumption_effect': consumption_effect,
         'multiplier': multiplier,
-        'ad_effect': ad_effect,
+        'aggregate_mpc': aggregate_mpc,  # For transparency
+        'ad_effect': ad_effect,  # Now negative for contractionary
         'emp_at_risk': emp_at_risk,
         'emp_share_at_risk': emp_at_risk / total_emp,
         'c_w': C_W,
-        'c_pi': C_PI
+        'c_pi': C_PI,
+        'omega_baseline': WAGE_SHARE_BASELINE
     }, occ
 
 
@@ -256,46 +321,62 @@ def bhaduri_marglin_model(occ, ar_results):
     """
     HETERODOX MODEL: Bhaduri-Marglin Endogenous Regime Determination
 
-    Theory: Investment responds to BOTH capacity utilization AND profit share.
-    This allows endogenous determination of whether economy is wage-led or profit-led.
+    CORRECTED VERSION with three fixes per ChatGPT review:
+    1. delta_profit_share now correctly converts wage fraction to income fraction
+    2. g_0 calibrated so model's baseline u* = U_BASELINE (consistency)
+    3. Worker saving (s_w > 0) added so regime is genuinely endogenous
 
     Investment function: I = g₀ + g_u×u + g_π×π
-    Savings function: S = s_π × π × u (Cambridge assumption: workers don't save)
-    Equilibrium: I = S
+    Savings function: S = (s_w×ω + s_π×π) × u  where ω = 1-π (wage share)
+                     = σ(π) × u  where σ(π) = s_w×(1-π) + s_π×π
 
-    Solving for equilibrium utilization:
-        u* = (g₀ + g_π×π) / (s_π×π - g_u)
+    Equilibrium (I = S):
+        u* = (g₀ + g_π×π) / (σ(π) - g_u)
 
     Regime determination:
-        ∂u*/∂π > 0 → profit-led demand
-        ∂u*/∂π < 0 → wage-led demand
+        ∂u*/∂π = [g_π×(σ-g_u) - (g₀+g_π×π)×(s_π-s_w)] / (σ-g_u)²
+
+        If s_π > s_w (capitalists save more), the sign is AMBIGUOUS:
+        - profit-led if investment response dominates saving response
+        - wage-led if saving response dominates investment response
 
     References:
         - Bhaduri & Marglin (1990) "Unemployment and the real wage"
         - Stockhammer (2017) "Determinants of the Wage Share"
         - Onaran & Galanis (2014) "Income distribution and growth"
+        - Hein (2014) "Distribution and Growth after Keynes" Ch. 6
 
     Returns dict with key estimates.
     """
     total_wage_bill = ar_results['total_wage_bill']
 
-    # Current profit share (1 - wage share in our framework)
-    wage_share_baseline = 0.55  # Approximate US wage share
-    profit_share_baseline = 1 - wage_share_baseline
+    # Baseline distribution
+    profit_share_baseline = 1 - WAGE_SHARE_BASELINE  # 0.45
 
-    # AI-induced change in profit share (wages displaced → profits)
-    delta_profit_share = (occ['wage_at_risk'].sum() / total_wage_bill)
+    # CORRECTED: AI-induced change in profit share
+    # wage_at_risk / wage_bill gives fraction of wages displaced
+    # To get change in profit share (Π/Y), multiply by wage share (W/Y)
+    # Because Δπ = Δ(Π/Y) = wage_at_risk/Y = (wage_at_risk/W) × (W/Y)
+    wage_fraction_at_risk = occ['wage_at_risk'].sum() / total_wage_bill
+    delta_profit_share = wage_fraction_at_risk * WAGE_SHARE_BASELINE  # CORRECTED
     profit_share_new = profit_share_baseline + delta_profit_share
 
+    # Aggregate saving rate function: σ(π) = s_w×(1-π) + s_π×π
+    def sigma(pi):
+        return S_W * (1 - pi) + S_PI * pi
+
+    sigma_before = sigma(profit_share_baseline)
+    sigma_after = sigma(profit_share_new)
+
     # Equilibrium utilization BEFORE AI shock
-    denominator_before = (S_PI * profit_share_baseline) - G_U
+    denominator_before = sigma_before - G_U
     if denominator_before <= 0:
-        u_star_before = U_BASELINE
+        u_star_before = U_BASELINE  # Unstable/undefined
     else:
         u_star_before = (G_0 + G_PI * profit_share_baseline) / denominator_before
 
     # Equilibrium utilization AFTER AI shock
-    denominator_after = (S_PI * profit_share_new) - G_U
+    denominator_after = sigma_after - G_U
     if denominator_after <= 0:
         u_star_after = U_BASELINE
     else:
@@ -304,26 +385,33 @@ def bhaduri_marglin_model(occ, ar_results):
     # Change in utilization
     delta_u = u_star_after - u_star_before
 
-    # Regime determination: ∂u*/∂π
-    regime_numerator = -(G_PI * G_U + G_0 * S_PI)
-    regime_denominator = denominator_before ** 2 if denominator_before > 0 else 1
-    partial_u_partial_pi = regime_numerator / regime_denominator
+    # CORRECTED Regime determination with worker saving:
+    # ∂u*/∂π = [g_π×(σ-g_u) - (g₀+g_π×π)×(s_π-s_w)] / (σ-g_u)²
+    # The sign is now GENUINELY AMBIGUOUS (not mechanically wage-led)
+    if denominator_before > 0:
+        numerator = (G_PI * denominator_before -
+                     (G_0 + G_PI * profit_share_baseline) * (S_PI - S_W))
+        partial_u_partial_pi = numerator / (denominator_before ** 2)
+    else:
+        partial_u_partial_pi = 0
 
     regime = "profit-led" if partial_u_partial_pi > 0 else "wage-led"
 
-    # Output effect
+    # Output effect (relative to baseline utilization)
     output_effect = delta_u / U_BASELINE if U_BASELINE > 0 else 0
 
     # Investment effect: ΔI = g_u×Δu + g_π×Δπ
     investment_effect = G_U * delta_u + G_PI * delta_profit_share
 
-    # Savings effect: ΔS = s_π×(π×Δu + u×Δπ)
-    savings_effect = S_PI * (profit_share_baseline * delta_u + U_BASELINE * delta_profit_share)
+    # Savings effect: ΔS ≈ σ×Δu + u×Δσ where Δσ = (s_π-s_w)×Δπ
+    delta_sigma = (S_PI - S_W) * delta_profit_share
+    savings_effect = sigma_before * delta_u + U_BASELINE * delta_sigma
 
     return {
         'profit_share_baseline': profit_share_baseline,
         'profit_share_new': profit_share_new,
         'delta_profit_share': delta_profit_share,
+        'wage_fraction_at_risk': wage_fraction_at_risk,  # For transparency
         'u_star_before': u_star_before,
         'u_star_after': u_star_after,
         'delta_utilization': delta_u,
@@ -332,10 +420,12 @@ def bhaduri_marglin_model(occ, ar_results):
         'output_effect': output_effect,
         'investment_effect': investment_effect,
         'savings_effect': savings_effect,
+        's_w': S_W,
         's_pi': S_PI,
         'g_u': G_U,
         'g_pi': G_PI,
-        'g_0': G_0
+        'g_0': G_0,
+        'sigma_baseline': sigma_before
     }
 
 
@@ -385,7 +475,11 @@ def parameter_sensitivity_analysis(occ, ar_results):
 
     # =========================================================================
     # KALECKIAN: Vary MPCs
+    # CORRECTED: Use proper delta_omega and derived multiplier
     # =========================================================================
+    # CORRECTED delta_omega = -ω₀ × wage_fraction_at_risk
+    delta_omega = -wage_share_baseline * delta_profit_share  # Now negative (wages fall)
+
     kalecki_scenarios = [
         (0.80, 0.40, "Baseline (c_w=0.80, c_π=0.40)"),
         (0.80, 0.30, "AI concentrates profits in low-spending tech firms"),
@@ -395,10 +489,13 @@ def parameter_sensitivity_analysis(occ, ar_results):
     ]
 
     for c_w, c_pi, desc in kalecki_scenarios:
-        consumption_effect = (c_w - c_pi) * delta_profit_share
-        avg_c = 0.55 * c_w + 0.45 * c_pi  # Weighted average
-        multiplier = 1 / (1 - avg_c)
-        ad_effect = consumption_effect * multiplier
+        # Derived multiplier from class MPCs: c = c_w×ω + c_π×(1-ω)
+        aggregate_mpc = wage_share_baseline * c_w + (1 - wage_share_baseline) * c_pi
+        multiplier = 1 / (1 - aggregate_mpc)
+
+        # Consumption effect with correct delta_omega (negative)
+        consumption_effect = (c_w - c_pi) * delta_omega
+        ad_effect = consumption_effect * multiplier  # Now negative (contractionary)
 
         results.append({
             'Model': 'Kaleckian',
@@ -412,43 +509,61 @@ def parameter_sensitivity_analysis(occ, ar_results):
 
     # =========================================================================
     # BHADURI-MARGLIN: Vary investment/saving parameters
+    # CORRECTED: Now with worker saving (s_w) for genuine regime determination
     # =========================================================================
+    # CORRECTED: delta_profit_share = wage_fraction × wage_share
+    delta_profit_share_corrected = delta_profit_share * WAGE_SHARE_BASELINE
+
     bm_scenarios = [
-        # (s_π, g_u, g_π, description)
-        (0.45, 0.10, 0.05, "Baseline"),
-        (0.55, 0.10, 0.05, "AI raises profit saving (tech firms retain earnings)"),
-        (0.35, 0.10, 0.05, "AI lowers profit saving (more dividends/buybacks)"),
-        (0.45, 0.10, 0.10, "AI boosts investment response to profits"),
-        (0.45, 0.10, 0.15, "Strong profit-led: investment very profit-sensitive"),
-        (0.45, 0.05, 0.05, "Weaker accelerator (g_u=0.05)"),
-        (0.45, 0.15, 0.05, "Stronger accelerator (g_u=0.15)"),
-        (0.55, 0.08, 0.12, "AI shifts to profit-led regime"),
-        (0.35, 0.12, 0.03, "AI intensifies wage-led regime"),
+        # (s_w, s_π, g_u, g_π, description)
+        (0.08, 0.45, 0.10, 0.05, "Baseline (with worker saving)"),
+        (0.05, 0.45, 0.10, 0.05, "Lower worker saving (s_w=0.05)"),
+        (0.15, 0.45, 0.10, 0.05, "Higher worker saving (s_w=0.15)"),
+        (0.08, 0.55, 0.10, 0.05, "AI raises profit saving (s_π=0.55)"),
+        (0.08, 0.35, 0.10, 0.05, "AI lowers profit saving (s_π=0.35)"),
+        (0.08, 0.45, 0.10, 0.10, "AI boosts investment response (g_π=0.10)"),
+        (0.08, 0.45, 0.10, 0.15, "Strong investment response (g_π=0.15)"),
+        (0.08, 0.45, 0.05, 0.05, "Weaker accelerator (g_u=0.05)"),
+        (0.08, 0.45, 0.15, 0.05, "Stronger accelerator (g_u=0.15)"),
+        (0.05, 0.55, 0.08, 0.12, "Profit-led shift attempt"),
+        (0.15, 0.35, 0.12, 0.03, "Wage-led intensification"),
     ]
 
-    for s_pi, g_u, g_pi, desc in bm_scenarios:
-        profit_share_new = profit_share_baseline + delta_profit_share
+    for s_w, s_pi, g_u, g_pi, desc in bm_scenarios:
+        # Aggregate saving rate: σ(π) = s_w×(1-π) + s_π×π
+        def sigma(pi):
+            return s_w * (1 - pi) + s_pi * pi
+
+        sigma_before = sigma(profit_share_baseline)
+        sigma_after = sigma(profit_share_baseline + delta_profit_share_corrected)
+
+        # Calibrate g_0 to hit U_BASELINE at baseline
+        g_0_cal = U_BASELINE * (sigma_before - g_u) - g_pi * profit_share_baseline
 
         # Equilibrium utilization BEFORE
-        denom_before = (s_pi * profit_share_baseline) - g_u
+        denom_before = sigma_before - g_u
         if denom_before <= 0:
             u_before = U_BASELINE
         else:
-            u_before = (G_0 + g_pi * profit_share_baseline) / denom_before
+            u_before = (g_0_cal + g_pi * profit_share_baseline) / denom_before
 
         # Equilibrium utilization AFTER
-        denom_after = (s_pi * profit_share_new) - g_u
+        denom_after = sigma_after - g_u
+        profit_share_new = profit_share_baseline + delta_profit_share_corrected
         if denom_after <= 0:
             u_after = U_BASELINE
         else:
-            u_after = (G_0 + g_pi * profit_share_new) / denom_after
+            u_after = (g_0_cal + g_pi * profit_share_new) / denom_after
 
         delta_u = u_after - u_before
         output_effect = delta_u / U_BASELINE
 
-        # Regime determination
+        # CORRECTED Regime determination with worker saving:
+        # ∂u*/∂π = [g_π×(σ-g_u) - (g₀+g_π×π)×(s_π-s_w)] / (σ-g_u)²
         if denom_before > 0:
-            partial = -(g_pi * g_u + G_0 * s_pi) / (denom_before ** 2)
+            numerator = (g_pi * denom_before -
+                        (g_0_cal + g_pi * profit_share_baseline) * (s_pi - s_w))
+            partial = numerator / (denom_before ** 2)
             regime = "profit-led" if partial > 0 else "wage-led"
         else:
             regime = "unstable"
@@ -456,7 +571,7 @@ def parameter_sensitivity_analysis(occ, ar_results):
         results.append({
             'Model': 'Bhaduri-Marglin',
             'Scenario': desc,
-            'Parameter_Changed': f's_π={s_pi}, g_u={g_u}, g_π={g_pi}',
+            'Parameter_Changed': f's_w={s_w}, s_π={s_pi}, g_u={g_u}, g_π={g_pi}',
             'Wage_Effect': None,
             'AD_Effect': None,
             'Output_Effect': output_effect,

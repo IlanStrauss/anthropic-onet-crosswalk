@@ -1,20 +1,28 @@
-# Acemoglu-Restrepo Task Displacement Model
+# Acemoglu-Restrepo Inspired Task Model
 
 ## 1. Introduction & Motivation
 
-The Acemoglu-Restrepo (A-R) model is the **dominant mainstream framework** for analyzing automation's labor market effects. It provides a rigorous, microfounded approach grounded in neoclassical economics.
+This model is a **didactic reduced-form proxy** inspired by the Acemoglu-Restrepo (A-R) task-based framework, widely cited in automation literature.
+
+**Important caveats:**
+
+- This is NOT the exact A-R framework—it's a simplified benchmark
+- Claude API usage measures **where Claude is used**, not tasks actually displaced to capital
+- Usage may reflect **complementarity** (productivity gains) as much as **substitution**
+- True A-R has both: **Net Effect = Productivity Effect − Displacement Effect**
+- We report φ=0 (no productivity gains) as a **pessimistic upper bound** on displacement
 
 **Why use this model?**
 
-- **Theoretical rigor**: Derived from first principles with clear assumptions
-- **Policy relevance**: Widely cited in policy discussions (IMF, OECD, World Bank)
-- **Comparability**: Enables comparison with existing automation literature
-- **Conservative baseline**: Full employment assumption provides lower-bound estimates
+- **Mainstream benchmark**: A-R is a widely cited task-based framework in automation literature
+- **Comparability**: Enables comparison with existing automation studies
+- **Clean baseline**: Full employment provides a stylized benchmark (not necessarily a lower bound)
 
 **Key assumptions:**
 - Full employment (labor markets clear)
 - Competitive markets (wages = marginal product)
 - Production uses a continuum of tasks
+- **100% displacement assumed** (α=1): All exposed tasks are displaced (pessimistic)
 
 ---
 
@@ -22,32 +30,42 @@ The Acemoglu-Restrepo (A-R) model is the **dominant mainstream framework** for a
 
 ### Core Equation
 
-The wage effect of AI-driven task displacement:
+Our proxy equation for the wage effect:
 
 ```
-Δln(w) = -[(σ-1)/σ] × task_displacement_share
+Δln(w) = φ × exposure_share - [(σ-1)/σ] × α × exposure_share
+       = (φ - [(σ-1)/σ] × α) × exposure_share
 ```
 
 Where:
 - `Δln(w)` = proportional change in aggregate wage level
+- `φ` = productivity effect (set to 0, pessimistic case)
 - `σ` = elasticity of substitution between tasks
-- `task_displacement_share` = share of wage bill in AI-exposed tasks
+- `α` = displacement rate (fraction of exposed tasks actually displaced)
+- `exposure_share` = wage-weighted AI usage exposure (NOT displacement)
+
+**Note:** This is a simplified proxy, not the exact A-R formulation. True A-R derives these terms from equilibrium conditions in a CES task aggregator.
 
 ### Mechanism
 
 1. Production requires many tasks along a continuum
-2. AI automates some tasks previously done by labor
-3. Labor demand for those tasks falls
+2. AI is used in some tasks (but may complement or substitute labor)
+3. If substitution: labor demand for those tasks falls
 4. Aggregate wage level adjusts downward
 5. Workers reallocate to remaining tasks (full employment maintained)
 
-### Parameter
+### Parameters
 
-| Parameter | Value | Source |
-|-----------|-------|--------|
-| `σ` (SIGMA) | 1.5 | Acemoglu & Restrepo (2018, 2022) |
+| Parameter | Value | Description | Source |
+|-----------|-------|-------------|--------|
+| `σ` (SIGMA) | 1.5 | Elasticity of substitution | A-R (2018) baseline |
+| `α` (ALPHA) | 1.0 | Displacement rate (pessimistic) | Assumed |
+| `φ` (PHI) | 0.0 | Productivity effect (pessimistic) | Assumed |
 
-**Note on σ**: Higher values imply larger wage effects. Literature range: 1.0–2.0.
+**Note on σ**: Higher σ means tasks are **more substitutable** (easier to replace labor with capital).
+- At σ=1 (Cobb-Douglas): displacement term vanishes—workers simply reallocate
+- As σ→∞: wage effect approaches -α × exposure_share
+- Literature range: 1.0–2.0
 
 ---
 
@@ -83,8 +101,10 @@ Because O*NET task statements can be shared across multiple occupations, a subse
 ```
 1. wage_bill[i] = TOT_EMP[i] × A_MEAN[i]
 2. wage_share[i] = wage_bill[i] / Σ wage_bill
-3. task_displacement_share = Σ (wage_share[i] × ai_exposure[i])
-4. wage_effect = -[(σ-1)/σ] × task_displacement_share
+3. exposure_share = Σ (wage_share[i] × ai_exposure[i])
+4. displacement_effect = -[(σ-1)/σ] × α × exposure_share
+5. productivity_effect = φ × exposure_share  (= 0 with φ=0)
+6. wage_effect = productivity_effect + displacement_effect
 ```
 
 ---
@@ -95,16 +115,16 @@ Because O*NET task statements can be shared across multiple occupations, a subse
 
 | Metric | Value | Meaning |
 |--------|-------|---------|
-| **Wage-weighted task displacement** | 0.34% | Share of US wage bill in AI-exposed tasks |
-| **Predicted wage effect (σ=1.5)** | -0.11% | Aggregate wage level decline (economy-wide average) |
-| **Employment-weighted exposure** | 0.26% | Share of US employment in AI-exposed tasks |
+| **Wage-weighted exposure share** | 0.34% | Share of US wage bill where Claude is used |
+| **Predicted wage effect (σ=1.5, α=1, φ=0)** | -0.11% | Pessimistic: full displacement, no productivity gains |
+| **Employment-weighted exposure** | 0.26% | Share of US employment where Claude is used |
 | **Occupations with wage data** | 558 | Coverage of US occupational structure |
 
 ### Robustness Check (Employment-Weighted Allocation)
 
 | Metric | Equal-Split | Emp-Weighted | Difference |
 |--------|-------------|--------------|------------|
-| Task displacement | 0.34% | 0.34% | +2.2% |
+| Exposure share | 0.34% | 0.34% | +2.2% |
 | Wage effect | -0.11% | -0.11% | +2.2% |
 
 **Interpretation:** Results are robust to the choice of allocation method for ambiguous tasks. The employment-weighted specification yields slightly higher estimates (+2.2%), but qualitative conclusions are unchanged.
@@ -115,14 +135,18 @@ Because O*NET task statements can be shared across multiple occupations, a subse
 
 ### What the -0.11% means
 
-- The **aggregate US wage level** would decline by 0.11% if all exposed tasks were fully automated
+- The **aggregate US wage level** would decline by 0.11% under pessimistic assumptions (α=1, φ=0)
 - This is an **economy-wide average**, not per-worker
 - Workers in exposed occupations would experience **larger** effects
 - Workers in unaffected occupations would see **smaller or no** effects
 
+### Critical limitation
+
+**Claude API usage is not direct evidence of automation.** It may represent complementarity/productivity improvements, so we interpret results as an illustrative upper bound under full displacement of exposed tasks.
+
 ### Context
 
-- **0.34% of the US wage bill** is currently in tasks performed by Claude API
+- **0.34% of the US wage bill** is in tasks where Claude is currently used
 - This is a **modest effect** reflecting early-stage LLM adoption
 - Employment-weighted exposure (0.26%) < wage-weighted (0.34%) → AI tasks skew toward **higher-wage occupations**
 
@@ -130,48 +154,51 @@ Because O*NET task statements can be shared across multiple occupations, a subse
 
 | Caveat | Implication |
 |--------|-------------|
-| Assumes full displacement | Upper bound estimate |
-| No productivity gains captured | Effect may be offset |
+| Usage ≠ displacement | Effect may be zero or positive (complementarity) |
+| Assumes full displacement (α=1) | Upper bound estimate |
+| No productivity gains (φ=0) | Effect may be offset |
 | No new task creation | A-R theory includes this, but we can't measure it |
 | Current usage only | Future exposure likely higher |
 | Full employment assumed | No unemployment modeled |
 
 ### Comparison with heterodox models
 
-| Model | Effect | Why different |
-|-------|--------|---------------|
-| **Acemoglu-Restrepo** | -0.11% | Supply-side only |
-| Kaleckian | -0.45% | Adds demand effects |
-| Bhaduri-Marglin | -0.73% | Adds investment feedbacks |
+| Model | Effect | Key difference |
+|-------|--------|----------------|
+| **This model** | -0.11% | Supply-side only, full displacement assumed |
+| Kaleckian | -0.19% | + Demand effects (consumption channel) |
+| Bhaduri-Marglin | -0.39% | + Investment feedbacks |
 
 ---
 
 ## 6. Parameter Sensitivity: Elasticity of Substitution (σ)
 
-The wage effect depends critically on σ, the elasticity of substitution between tasks. AI might increase σ by making tasks more interchangeable.
+The wage effect depends on σ, the elasticity of substitution between tasks. We use σ as a **reduced-form sensitivity knob**, not its full structural interpretation.
 
 ### Scenario Results
 
 | σ Value | Description | Wage Effect |
 |---------|-------------|-------------|
-| 1.0 | Cobb-Douglas (no displacement) | **0.00%** |
-| 1.25 | Moderate-low substitutability | -0.07% |
+| 1.0 | Cobb-Douglas (displacement term vanishes) | **0.00%** |
+| 1.25 | Lower substitutability | -0.07% |
 | **1.5** | **Baseline** | **-0.11%** |
-| 2.0 | High substitutability | -0.17% |
-| 2.5 | Very high (AI raises substitutability) | **-0.20%** |
+| 2.0 | Higher substitutability | -0.17% |
+| 2.5 | Very high | **-0.20%** |
 
 ### Interpretation
 
-- At σ=1 (Cobb-Douglas), task displacement has **no wage effect**—workers simply reallocate
-- As σ increases, wage effects grow because displaced workers have more difficulty substituting into remaining tasks
-- If AI makes tasks more substitutable (σ→2.5), wage effects could be **2x larger** than baseline
+- At σ=1 (Cobb-Douglas), the displacement term vanishes—workers reallocate without wage loss
+- Higher σ means tasks are **more substitutable** (labor more easily replaced by capital)
+- As σ→∞, wage effect approaches the full exposure share
+
+**Note:** In CES task aggregators, σ's exact role is more nuanced. We use it here as a sensitivity parameter to show the range of possible effects.
 
 ### Literature Range
 
 Published estimates of σ vary:
 - Acemoglu & Restrepo (2018): σ ≈ 1.5
-- Earlier automation literature: σ ≈ 1.0–2.0
-- Some recent AI studies suggest higher values may be appropriate
+- Earlier automation literature: σ ≈ 0.6–2.0
+- A-R sensitivity analyses sometimes use 0.6–1.2 as well
 
 ---
 

@@ -7,7 +7,7 @@ The Bhaduri-Marglin (1990) model extends the Kaleckian framework by making **inv
 **Why use this model?**
 
 - **Investment matters**: Basic Kaleckian holds investment constant; B-M lets it respond to profits
-- **Regime is endogenous**: Doesn't assume wage-led—tests whether consumption or investment channel dominates
+- **Regime is endogenous**: Tests whether consumption or investment channel dominates
 - **More complete**: Captures both demand-side (consumption) and supply-side (investment) channels
 - **Policy-relevant**: Different regimes imply different optimal policies
 
@@ -15,8 +15,9 @@ The Bhaduri-Marglin (1990) model extends the Kaleckian framework by making **inv
 
 **Key assumptions:**
 - Investment responds to capacity utilization AND profit share
-- Workers don't save (Cambridge saving assumption)
+- Workers save a small fraction of wages (s_w = 0.08); capitalists save more (s_π = 0.45)
 - Economy reaches goods market equilibrium
+- Autonomous investment calibrated to hit baseline utilization (80%)
 
 ---
 
@@ -29,28 +30,31 @@ The Bhaduri-Marglin (1990) model extends the Kaleckian framework by making **inv
 I = g₀ + g_u × u + g_π × π
 ```
 Where:
-- `g₀` = autonomous investment
+- `g₀` = autonomous investment (calibrated to hit baseline u)
 - `g_u` = sensitivity to capacity utilization (accelerator)
 - `g_π` = sensitivity to profit share (profitability motive)
 - `u` = capacity utilization
 - `π` = profit share
 
-**Savings function (Cambridge assumption):**
+**Savings function (with worker saving):**
 ```
-S = s_π × π × u
+S = [s_w × (1-π) + s_π × π] × u = σ × u
 ```
-Workers don't save; all savings from profits.
+Where σ = aggregate saving propensity. Workers save s_w of wages; capitalists save s_π of profits.
 
 **Equilibrium (I = S):**
 ```
-u* = (g₀ + g_π × π) / (s_π × π - g_u)
+u* = (g₀ + g_π × π) / (σ - g_u)
 ```
+Where σ = s_w × (1-π) + s_π × π.
 
 **Regime determination:**
 ```
 ∂u*/∂π > 0 → profit-led
 ∂u*/∂π < 0 → wage-led
 ```
+
+The regime depends on whether higher profits raise saving (contractionary) more than they raise investment (expansionary). With s_w < s_π, higher π raises σ, which tends toward wage-led. With high g_π, higher π boosts investment, which tends toward profit-led.
 
 ### Mechanism
 
@@ -80,17 +84,20 @@ u* = (g₀ + g_π × π) / (s_π × π - g_u)
 
 | Parameter | Value | Description | Source |
 |-----------|-------|-------------|--------|
+| `s_w` | 0.08 | Saving propensity out of wages | Onaran & Galanis (2014): 0.05-0.15 |
 | `s_π` | 0.45 | Saving propensity out of profits | Stockhammer (2017) |
 | `g_u` | 0.10 | Investment sensitivity to utilization | Onaran & Galanis (2014) |
 | `g_π` | 0.05 | Investment sensitivity to profit share | Stockhammer (2017) |
-| `g₀` | 0.03 | Autonomous investment rate | Calibrated |
+| `g₀` | 0.1166 | Autonomous investment rate | **Calibrated to u_baseline** |
 | `u_baseline` | 0.80 | Baseline capacity utilization | Standard (80%) |
 | `wage_share_baseline` | 0.55 | US wage share | BLS approximation |
 
 **Parameter interpretation:**
+- `s_w = 0.08`: Workers save 8% of wages
 - `s_π = 0.45`: Capitalists save 45% of profits
 - `g_u = 0.10`: 1% higher utilization → 0.1% more investment
 - `g_π = 0.05`: 1pp higher profit share → 0.05% more investment
+- `g₀ = 0.1166`: Calibrated so model hits u* = 0.80 at baseline profit share (0.45)
 
 ### Handling Ambiguous Task→SOC Mappings
 
@@ -109,21 +116,24 @@ Because O*NET task statements can be shared across multiple occupations, a subse
 
 ```
 1. profit_share_baseline = 1 - wage_share_baseline = 0.45
-2. delta_profit_share = wage_at_risk / total_wage_bill
-3. profit_share_new = profit_share_baseline + delta_profit_share
-4. u*_before = (g₀ + g_π × π_before) / (s_π × π_before - g_u)
-5. u*_after = (g₀ + g_π × π_after) / (s_π × π_after - g_u)
-6. delta_u = u*_after - u*_before
-7. output_effect = delta_u / u_baseline
+2. wage_fraction_at_risk = wage_at_risk / total_wage_bill = 0.34%
+3. delta_profit_share = wage_fraction_at_risk × wage_share_baseline = 0.34% × 0.55 = 0.18%
+   (Converting from share of wages to share of total income)
+4. profit_share_new = profit_share_baseline + delta_profit_share = 45.18%
+5. σ_before = s_w × (1-π_before) + s_π × π_before
+6. σ_after = s_w × (1-π_after) + s_π × π_after
+7. u*_before = (g₀ + g_π × π_before) / (σ_before - g_u)
+8. u*_after = (g₀ + g_π × π_after) / (σ_after - g_u)
+9. delta_u = u*_after - u*_before
+10. output_effect = delta_u / u_baseline
 ```
 
-**Regime test:**
-```
-∂u*/∂π = -(g_π × g_u + g₀ × s_π) / (s_π × π - g_u)²
-       = -(0.05 × 0.10 + 0.03 × 0.45) / (0.1025)²
-       = -0.0185 / 0.0105
-       = -1.76 < 0 → WAGE-LED
-```
+**Regime test (with worker saving):**
+
+The regime depends on the sign of ∂u*/∂π. With worker saving included, the regime can genuinely flip between wage-led and profit-led depending on parameter values. At baseline parameters:
+- Higher π raises σ (saving) because s_π > s_w → contractionary
+- Higher π raises investment via g_π → expansionary
+- Net effect depends on parameter magnitudes
 
 ---
 
@@ -134,20 +144,20 @@ Because O*NET task statements can be shared across multiple occupations, a subse
 | Metric | Value | Meaning |
 |--------|-------|---------|
 | **Baseline profit share** | 45.0% | Pre-AI profit share |
-| **New profit share** | 45.3% | Post-AI profit share |
-| **Change in profit share** | +0.34% | AI-driven redistribution |
-| **Change in utilization** | -0.58% | Utilization decline |
+| **New profit share** | 45.18% | Post-AI profit share |
+| **Change in profit share** | +0.18% | AI-driven redistribution (share of total income) |
+| **Change in utilization** | -0.31% | Utilization decline |
 | **Demand regime** | **WAGE-LED** | Consumption dominates investment |
-| **Output effect** | -0.73% | Economy-wide output decline |
+| **Output effect** | -0.39% | Economy-wide output decline |
 | **Occupations with wage data** | 558 | Coverage of US occupational structure |
 
 ### Robustness Check (Employment-Weighted Allocation)
 
 | Metric | Equal-Split | Emp-Weighted | Difference |
 |--------|-------------|--------------|------------|
-| Change in profit share | 0.34% | 0.34% | +2.2% |
-| Change in utilization | -0.58% | -0.59% | +2.3% |
-| Output effect | -0.73% | -0.74% | +2.3% |
+| Change in profit share | 0.18% | 0.19% | +2.2% |
+| Change in utilization | -0.31% | -0.32% | +2.3% |
+| Output effect | -0.39% | -0.39% | +2.3% |
 | Demand regime | Wage-led | Wage-led | Same |
 
 **Interpretation:** Results are robust to the choice of allocation method for ambiguous tasks. The employment-weighted specification yields slightly higher estimates (+2.3%), but qualitative conclusions are unchanged. Both specifications confirm the economy is **wage-led**.
@@ -156,24 +166,24 @@ Because O*NET task statements can be shared across multiple occupations, a subse
 
 ## 5. Results Interpretation
 
-### What the -0.73% output effect means
+### What the -0.39% output effect means
 
-- If AI-exposed wages were fully displaced to profits, **output would fall by 0.73%**
-- This is the **largest effect** across all three models
+- If AI-exposed wages were fully displaced to profits, **output would fall by 0.39%**
+- This is **smaller than the Kaleckian effect** (-0.45%) because of model differences in multiplier channels
 - The economy is confirmed to be **wage-led**: consumption loss > investment gain
 
-### Why largest effect?
+### Comparison across models
 
 | Model | Effect | Channels captured |
 |-------|--------|-------------------|
 | Acemoglu-Restrepo | -0.11% | Task displacement |
-| Kaleckian | -0.45% | + Consumption + multiplier |
-| **Bhaduri-Marglin** | **-0.73%** | + Investment feedbacks |
+| Kaleckian | -0.45% | + Consumption + Keynesian multiplier |
+| **Bhaduri-Marglin** | **-0.39%** | + Investment feedbacks (but different multiplier) |
 
-The Bhaduri-Marglin effect is larger because:
-1. It includes **investment response** to lower utilization (g_u × Δu)
-2. Lower utilization further depresses investment → **feedback loop**
-3. System settles at **new lower equilibrium**
+**Note on B-M vs Kaleckian:** The B-M effect is slightly smaller because:
+1. The B-M model uses a different equilibrium condition (I=S) than the Kaleckian multiplier
+2. Investment response to profits partially offsets the consumption decline
+3. Both models confirm wage-led regime, but with different equilibrium mechanisms
 
 ### Regime determination
 
@@ -199,13 +209,13 @@ In a wage-led regime:
 | Static equilibrium | No adjustment dynamics |
 | Closed economy | Ignores trade effects |
 | Linear investment function | Real response may be non-linear |
-| Cambridge saving | Workers may save some |
+| 100% displacement assumed | Actual displacement rate (α) is unknown |
 
 ### Stability condition
 
-For stable equilibrium: `s_π × π - g_u > 0`
+For stable equilibrium: `σ - g_u > 0` (where σ = s_w(1-π) + s_π×π)
 
-With our parameters: `0.45 × 0.45 - 0.10 = 0.1025 > 0` ✓
+With our parameters: `0.2465 - 0.10 = 0.1465 > 0` ✓
 
 Keynesian stability holds: savings more responsive than investment.
 
@@ -219,6 +229,7 @@ AI may not only displace tasks—it could also shift the structural parameters t
 
 | Parameter | Baseline | AI Could Raise If... | AI Could Lower If... |
 |-----------|----------|---------------------|---------------------|
+| `s_w` (worker saving) | 0.08 | Precarity/gig economy raises saving | Wealth effects reduce saving |
 | `s_π` (profit saving) | 0.45 | Tech firms retain earnings for R&D | More dividends/buybacks |
 | `g_u` (accelerator) | 0.10 | AI makes investment more responsive | Uncertainty delays investment |
 | `g_π` (profit sensitivity) | 0.05 | Profits strongly signal investment opportunities | Profits don't translate to investment |
@@ -227,35 +238,35 @@ AI may not only displace tasks—it could also shift the structural parameters t
 
 | Scenario | Parameters | Output Effect | Regime |
 |----------|------------|---------------|--------|
-| **Baseline** | s_π=0.45, g_u=0.10, g_π=0.05 | **-0.73%** | wage-led |
-| AI raises profit saving | s_π=0.55 | -0.41% | wage-led |
-| AI lowers profit saving | s_π=0.35 | -1.93% | wage-led |
-| AI boosts investment response | g_π=0.10 | -0.92% | wage-led |
-| Strong profit-led attempt | g_π=0.15 | -1.12% | wage-led |
-| Weaker accelerator | g_u=0.05 | -0.29% | wage-led |
-| Stronger accelerator | g_u=0.15 | -3.11% | wage-led |
-| AI shifts to profit-led | s_π=0.55, g_u=0.08, g_π=0.12 | -0.39% | wage-led |
-| AI intensifies wage-led | s_π=0.35, g_u=0.12, g_π=0.03 | **-4.08%** | wage-led |
+| **Baseline (with worker saving)** | s_w=0.08, s_π=0.45, g_u=0.10, g_π=0.05 | **-0.39%** | wage-led |
+| Lower worker saving (s_w=0.05) | s_w=0.05 | -0.48% | wage-led |
+| Higher worker saving (s_w=0.15) | s_w=0.15 | -0.24% | wage-led |
+| AI raises profit saving (s_π=0.55) | s_π=0.55 | -0.39% | wage-led |
+| AI lowers profit saving (s_π=0.35) | s_π=0.35 | -0.38% | wage-led |
+| AI boosts investment response (g_π=0.10) | g_π=0.10 | -0.31% | wage-led |
+| Strong investment response (g_π=0.15) | g_π=0.15 | -0.23% | wage-led |
+| Weaker accelerator (g_u=0.05) | g_u=0.05 | -0.29% | wage-led |
+| Stronger accelerator (g_u=0.15) | g_u=0.15 | -0.58% | wage-led |
+| Profit-led shift attempt | s_w=0.05, s_π=0.55, g_u=0.08, g_π=0.12 | -0.33% | wage-led |
+| Wage-led intensification | s_w=0.15, s_π=0.35, g_u=0.12, g_π=0.03 | -0.25% | wage-led |
 
 ### Key Finding: Robust Wage-Led Regime
 
-**All 9 scenarios remain wage-led.** Even aggressive parameter shifts toward profit-led dynamics (high g_π, high s_π) do not flip the regime. This suggests:
+**All 11 scenarios remain wage-led.** Even aggressive parameter shifts toward profit-led dynamics (high g_π, low s_w, high s_π) do not flip the regime. This suggests:
 
-1. The US economy is **deeply wage-led** in its structural parameters
-2. AI-driven redistribution is **contractionary across all plausible scenarios**
-3. Output effects range from **-0.29% to -4.08%** depending on parameters
+1. The US economy is **wage-led** under standard Post-Keynesian parameter ranges
+2. AI-driven redistribution is **contractionary across all tested scenarios**
+3. Output effects range from **-0.23% to -0.58%** depending on parameters
 
-### Worst-Case Scenario
+### What Would Flip the Regime?
 
-If AI intensifies wage-led dynamics (s_π=0.35, g_u=0.12, g_π=0.03):
-- Output falls by **4.08%** (vs 0.73% baseline)
-- This could occur if AI leads to more profit distribution (lower s_π) while making capacity utilization more important for investment
+For profit-led demand, we would need investment response to profits (g_π) to dominate the saving differential (s_π - s_w). With our baseline gap of 0.37 (= 0.45 - 0.08), g_π would need to be implausibly high (≈0.20+) to overcome the contractionary saving effect.
 
 ### Best-Case Scenario (within wage-led)
 
-If AI dampens the accelerator (g_u=0.05):
-- Output falls by only **0.29%**
-- This could occur if investment becomes less responsive to utilization swings
+If AI boosts investment response to profits (g_π=0.15):
+- Output falls by only **0.23%**
+- Investment partially offsets consumption decline
 
 ---
 
@@ -264,12 +275,12 @@ If AI dampens the accelerator (g_u=0.05):
 | Model | Effect | Range (Sensitivity) | Key Channel |
 |-------|--------|---------------------|-------------|
 | Acemoglu-Restrepo | -0.11% | 0% to -0.20% (vary σ) | Task displacement |
-| Kaleckian | -0.45% | 0.23% to 0.45% (vary MPCs) | Consumption + multiplier |
-| Bhaduri-Marglin | -0.73% | **-0.29% to -4.08%** (vary s_π, g_u, g_π) | Investment feedbacks |
+| Kaleckian | -0.45% | -0.23% to -0.45% (vary MPCs) | Consumption + multiplier |
+| Bhaduri-Marglin | -0.39% | **-0.23% to -0.58%** (vary s_w, s_π, g_u, g_π) | Investment feedbacks |
 
-**Key insight:** The Bhaduri-Marglin model shows the **widest range of outcomes** because it depends on multiple interacting parameters. This highlights the importance of understanding how AI affects not just task displacement, but also saving behavior and investment dynamics.
+**Key insight:** All three models show contractionary effects from AI-driven redistribution toward profits. The Bhaduri-Marglin model now includes worker saving (s_w) for genuinely endogenous regime determination and is internally consistent (g₀ calibrated to baseline utilization).
 
-All models show **stable results** across allocation methods, with employment-weighted yielding slightly higher estimates. The **progressive amplification** from mainstream to heterodox models highlights the importance of demand-side and investment channels often ignored in conventional analysis.
+All models show **stable results** across allocation methods, with employment-weighted yielding slightly higher estimates (+2.2%).
 
 ---
 

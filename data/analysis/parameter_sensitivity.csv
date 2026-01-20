@@ -4,17 +4,19 @@ Acemoglu-Restrepo,Moderate-low (σ=1.25),σ = 1.25,-0.0006709658354755186,,,N/A 
 Acemoglu-Restrepo,Baseline (σ=1.5),σ = 1.5,-0.0011182763924591976,,,N/A (full employment)
 Acemoglu-Restrepo,High substitutability (σ=2.0),σ = 2.0,-0.0016774145886887964,,,N/A (full employment)
 Acemoglu-Restrepo,Very high (σ=2.5) - AI makes tasks more substitutable,σ = 2.5,-0.0020128975064265557,,,N/A (full employment)
-Kaleckian,"Baseline (c_w=0.80, c_π=0.40)","c_w=0.8, c_π=0.4",,0.0035313991340816787,,wage-led
-Kaleckian,AI concentrates profits in low-spending tech firms,"c_w=0.8, c_π=0.3",,0.003946857855738346,,wage-led
-Kaleckian,"Workers save more (precarity, gig economy)","c_w=0.7, c_π=0.4",,0.0023136752947431677,,wage-led
-Kaleckian,Financialization: more shareholder payouts,"c_w=0.75, c_π=0.5",,0.0023136752947431685,,wage-led
-Kaleckian,"Stronger wage-led: workers spend more, profits less","c_w=0.85, c_π=0.35",,0.004473105569836791,,wage-led
-Bhaduri-Marglin,Baseline,"s_π=0.45, g_u=0.1, g_π=0.05",,,-0.007277036545557114,wage-led
-Bhaduri-Marglin,AI raises profit saving (tech firms retain earnings),"s_π=0.55, g_u=0.1, g_π=0.05",,,-0.0040929432503713364,wage-led
-Bhaduri-Marglin,AI lowers profit saving (more dividends/buybacks),"s_π=0.35, g_u=0.1, g_π=0.05",,,-0.019266249206884717,wage-led
-Bhaduri-Marglin,AI boosts investment response to profits,"s_π=0.45, g_u=0.1, g_π=0.1",,,-0.009243803179491417,wage-led
-Bhaduri-Marglin,Strong profit-led: investment very profit-sensitive,"s_π=0.45, g_u=0.1, g_π=0.15",,,-0.01121056981342572,wage-led
-Bhaduri-Marglin,Weaker accelerator (g_u=0.05),"s_π=0.45, g_u=0.05, g_π=0.05",,,-0.002856817939365791,wage-led
-Bhaduri-Marglin,Stronger accelerator (g_u=0.15),"s_π=0.45, g_u=0.15, g_π=0.05",,,-0.03105766970033133,wage-led
-Bhaduri-Marglin,AI shifts to profit-led regime,"s_π=0.55, g_u=0.08, g_π=0.12",,,-0.003858631824378983,wage-led
-Bhaduri-Marglin,AI intensifies wage-led regime,"s_π=0.35, g_u=0.12, g_π=0.03",,,-0.04077059415389911,wage-led
+Kaleckian,"Baseline (c_w=0.80, c_π=0.40)","c_w=0.8, c_π=0.4",,-0.0019422695237449235,,wage-led
+Kaleckian,AI concentrates profits in low-spending tech firms,"c_w=0.8, c_π=0.3",,-0.0021707718206560906,,wage-led
+Kaleckian,"Workers save more (precarity, gig economy)","c_w=0.7, c_π=0.4",,-0.0012725214121087423,,wage-led
+Kaleckian,Financialization: more shareholder payouts,"c_w=0.75, c_π=0.5",,-0.0012725214121087425,,wage-led
+Kaleckian,"Stronger wage-led: workers spend more, profits less","c_w=0.85, c_π=0.35",,-0.0024602080634102356,,wage-led
+Bhaduri-Marglin,Baseline (with worker saving),"s_w=0.08, s_π=0.45, g_u=0.1, g_π=0.05",,,-0.0038549738168665304,wage-led
+Bhaduri-Marglin,Lower worker saving (s_w=0.05),"s_w=0.05, s_π=0.45, g_u=0.1, g_π=0.05",,,-0.004763265987947629,wage-led
+Bhaduri-Marglin,Higher worker saving (s_w=0.15),"s_w=0.15, s_π=0.45, g_u=0.1, g_π=0.05",,,-0.002361714819354016,wage-led
+Bhaduri-Marglin,AI raises profit saving (s_π=0.55),"s_w=0.08, s_π=0.55, g_u=0.1, g_π=0.05",,,-0.003908675689733299,wage-led
+Bhaduri-Marglin,AI lowers profit saving (s_π=0.35),"s_w=0.08, s_π=0.35, g_u=0.1, g_π=0.05",,,-0.003753692804374237,wage-led
+Bhaduri-Marglin,AI boosts investment response (g_π=0.10),"s_w=0.08, s_π=0.45, g_u=0.1, g_π=0.1",,,-0.003071442553275877,wage-led
+Bhaduri-Marglin,Strong investment response (g_π=0.15),"s_w=0.08, s_π=0.45, g_u=0.1, g_π=0.15",,,-0.0022879112896849463,wage-led
+Bhaduri-Marglin,Weaker accelerator (g_u=0.05),"s_w=0.08, s_π=0.45, g_u=0.05, g_π=0.05",,,-0.002877460661403486,wage-led
+Bhaduri-Marglin,Stronger accelerator (g_u=0.15),"s_w=0.08, s_π=0.45, g_u=0.15, g_π=0.05",,,-0.005838337887805883,wage-led
+Bhaduri-Marglin,Profit-led shift attempt,"s_w=0.05, s_π=0.55, g_u=0.08, g_π=0.12",,,-0.0032962235550351715,wage-led
+Bhaduri-Marglin,Wage-led intensification,"s_w=0.15, s_π=0.35, g_u=0.12, g_π=0.03",,,-0.002490988377286535,wage-led
