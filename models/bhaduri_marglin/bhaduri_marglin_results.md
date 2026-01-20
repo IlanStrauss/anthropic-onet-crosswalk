@@ -236,8 +236,10 @@ AI may not only displace tasks—it could also shift the structural parameters t
 
 ### Scenario Results
 
-| Scenario | Parameters | Output Effect | Regime |
-|----------|------------|---------------|--------|
+**What this table shows:** How ΔY/Y (change in aggregate output/GDP) and the demand regime vary with saving (s_w, s_π) and investment (g_u, g_π) parameters.
+
+| Scenario | Parameters | ΔY/Y (output change) | Demand Regime |
+|----------|------------|----------------------|---------------|
 | **Baseline (with worker saving)** | s_w=0.08, s_π=0.45, g_u=0.10, g_π=0.05 | **-0.39%** | wage-led |
 | Lower worker saving (s_w=0.05) | s_w=0.05 | -0.48% | wage-led |
 | Higher worker saving (s_w=0.15) | s_w=0.15 | -0.24% | wage-led |
@@ -249,6 +251,8 @@ AI may not only displace tasks—it could also shift the structural parameters t
 | Stronger accelerator (g_u=0.15) | g_u=0.15 | -0.58% | wage-led |
 | Profit-led shift attempt | s_w=0.05, s_π=0.55, g_u=0.08, g_π=0.12 | -0.33% | wage-led |
 | Wage-led intensification | s_w=0.15, s_π=0.35, g_u=0.12, g_π=0.03 | -0.25% | wage-led |
+
+*Regime: wage-led = ∂u*/∂π < 0 (higher profit share reduces equilibrium capacity utilization)*
 
 ### Key Finding: Robust Wage-Led Regime
 

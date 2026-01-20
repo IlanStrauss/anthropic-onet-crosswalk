@@ -177,8 +177,10 @@ The wage effect depends on σ, the elasticity of substitution between tasks. We 
 
 ### Scenario Results
 
-| σ Value | Description | Wage Effect |
-|---------|-------------|-------------|
+**What this table shows:** How Δln(w) (change in economy-wide average wage level) varies with σ (elasticity of substitution between tasks).
+
+| σ (elasticity) | Description | Δln(w) (aggregate wage change) |
+|----------------|-------------|--------------------------------|
 | 1.0 | Cobb-Douglas (displacement term vanishes) | **0.00%** |
 | 1.25 | Lower substitutability | -0.07% |
 | **1.5** | **Baseline** | **-0.11%** |

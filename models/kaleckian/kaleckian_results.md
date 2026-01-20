@@ -205,13 +205,17 @@ The AD effect depends on the difference between worker and capitalist consumptio
 
 ### Scenario Results
 
-| Scenario | c_w | c_π | AD Effect | Derived κ |
-|----------|-----|-----|-----------|-----------|
+**What this table shows:** How ΔY/Y (change in aggregate output/GDP) varies with worker (c_w) and capitalist (c_π) marginal propensities to consume.
+
+| Scenario | c_w | c_π | ΔY/Y (output change) | κ (multiplier) |
+|----------|-----|-----|----------------------|----------------|
 | **Baseline** | 0.80 | 0.40 | **-0.19%** | 2.04 |
 | AI concentrates profits in low-spending tech firms | 0.80 | 0.30 | -0.25% | 2.12 |
 | Workers save more (precarity, gig economy) | 0.70 | 0.40 | -0.13% | 1.85 |
 | Financialization: more shareholder payouts | 0.75 | 0.50 | -0.13% | 1.79 |
 | Stronger wage-led: workers spend more | 0.85 | 0.35 | -0.25% | 2.22 |
+
+*κ = 1/(1-c) where c = c_w×ω + c_π×(1-ω) is the aggregate marginal propensity to consume*
 
 ### Interpretation
 
