@@ -1,61 +1,26 @@
 # Kaleckian Wage Share / Aggregate Demand Model
 
-## Key Findings
+## 1. Introduction & Motivation
 
-| Metric | Value |
-|--------|-------|
-| **Wage share reduction** | 0.34% |
-| **Consumption effect** | 0.14% |
-| **Keynesian multiplier** | 3.33 |
-| **Aggregate demand effect** | 0.46% |
-| **Employment share at risk** | 0.27% |
-| **Wage bill at risk** | $41.1 billion |
+The Kaleckian model is a **Post-Keynesian demand-side framework** that captures macroeconomic effects missing from mainstream models.
 
-### Interpretation
+**Why use this model?**
 
-Applying Post-Keynesian distributional analysis to Anthropic API usage data:
+- **Demand matters**: Mainstream models assume full employment; Kaleckian allows demand-constrained output
+- **Distribution affects growth**: Income distribution is not neutral—it affects aggregate demand
+- **Unemployment possible**: Workers displaced by AI may not find new jobs immediately
+- **Multiplier effects**: Initial shocks are amplified through spending chains
 
-- **$41.1 billion in wages** are currently in tasks performed by Claude API
-- If these wages were displaced to profits, the **consumption effect would be 0.14%** (due to differential spending propensities)
-- With the Keynesian multiplier (3.33), the **total aggregate demand effect is 0.46%**
-- This is **larger than the Acemoglu-Restrepo wage effect (-0.11%)** because it captures demand-side feedbacks
+**Key insight**: Workers spend more of their income than capitalists (c_w > c_π), so shifting income from wages to profits **reduces** aggregate consumption and demand.
 
-### Why This Matters
-
-The Kaleckian model reveals **macroeconomic risks** from AI-driven redistribution:
-
-1. **Demand drag**: Income shifting to profits reduces consumption
-2. **Multiplier amplification**: Initial shock is magnified 3.3x
-3. **Unemployment risk**: 0.27% of employment in exposed occupations
-
-### Comparison with Acemoglu-Restrepo
-
-| Effect | A-R Model | Kaleckian |
-|--------|-----------|-----------|
-| Wage effect | -0.11% | — |
-| AD effect | — | -0.46% |
-| Mechanism | Task displacement | Consumption reduction |
-| Assumes | Full employment | Demand-constrained |
-
-The Kaleckian effect is **4x larger** because it captures the full demand chain.
+**Key assumptions:**
+- Demand-constrained economy (not full employment)
+- Differential propensities to consume by income class
+- Investment held constant (relaxed in Bhaduri-Marglin)
 
 ---
 
-## Theoretical Framework
-
-The Kaleckian model is a **Post-Keynesian demand-side framework** that analyzes how income distribution affects aggregate demand. Unlike neoclassical models, it:
-
-- **Allows unemployment**: Economy can be demand-constrained
-- **Emphasizes distribution**: Wage share affects consumption and output
-- **Features multiplier effects**: Initial shocks amplified through spending
-
-### Key Insight
-
-Workers have higher marginal propensity to consume than capitalists:
-- **c_w > c_π** (workers spend more of each dollar than profit-earners)
-- Therefore: **wage share ↓ → consumption ↓ → aggregate demand ↓**
-
-This is the signature of a **wage-led demand regime**.
+## 2. Model
 
 ### Core Equations
 
@@ -63,34 +28,42 @@ This is the signature of a **wage-led demand regime**.
 ```
 C = c_w × W + c_π × Π
 ```
-Where W = total wages, Π = total profits
+Where: W = wages, Π = profits, c_w = wage MPC, c_π = profit MPC
 
 **Consumption effect of wage share change:**
 ```
 ΔC = (c_w - c_π) × Δω
 ```
-Where Δω = change in wage share
+Where: Δω = change in wage share
 
 **With Keynesian multiplier:**
 ```
 ΔY = κ × ΔC = [1/(1-c)] × (c_w - c_π) × Δω
 ```
 
+### Mechanism
+
+1. AI displaces labor tasks → wages fall, profits rise
+2. Income shifts from high-spending workers to low-spending capitalists
+3. Consumption falls: ΔC = (0.80 - 0.40) × Δω
+4. Multiplier amplifies: ΔY = 3.33 × ΔC
+5. Aggregate demand contracts
+
 ---
 
-## Variables
+## 3. Data
 
-### From Our Data
+### Variables from Our Data
 
 | Variable | Description | Source |
 |----------|-------------|--------|
-| `wage_bill` | Total wages for occupation (`TOT_EMP × A_MEAN`) | BLS OEWS |
-| `total_wage_bill` | Sum of all occupation wage bills | Calculated |
-| `wage_at_risk` | Wage bill × AI exposure | Calculated |
-| `wage_share_effect` | Wage at risk / Total wage bill | Calculated |
-| `emp_at_risk` | Employment × AI exposure | Calculated |
-| `TOT_EMP` | Total employment in occupation | BLS OEWS |
-| `ai_exposure` | Occupation-level AI exposure | From API data |
+| `api_usage_count` | API calls per task | Anthropic API logs |
+| `ai_exposure` | Occupation-level AI exposure | Calculated from API data |
+| `TOT_EMP` | Employment per occupation | BLS OEWS |
+| `A_MEAN` | Mean annual wage | BLS OEWS |
+| `wage_bill` | `TOT_EMP × A_MEAN` | Calculated |
+| `wage_at_risk` | `wage_bill × ai_exposure` | Calculated |
+| `emp_at_risk` | `TOT_EMP × ai_exposure` | Calculated |
 
 ### Parameters from Literature
 
@@ -98,111 +71,87 @@ Where Δω = change in wage share
 |-----------|-------|-------------|--------|
 | `c_w` | 0.80 | Marginal propensity to consume (wages) | Stockhammer (2011) |
 | `c_π` | 0.40 | Marginal propensity to consume (profits) | Onaran & Galanis (2014) |
-| `c` (AVG_C) | 0.70 | Aggregate consumption propensity | Standard Keynesian |
+| `c` | 0.70 | Aggregate consumption propensity | Standard Keynesian |
 
-**Note on parameters**: These are **calibrated from existing research**, not estimated from our data. Values are typical for advanced economies:
+**Parameter interpretation:**
+- Workers spend 80 cents of each dollar earned
+- Profit-earners spend 40 cents of each dollar
+- Difference (40 cents) = consumption loss per dollar shifted from wages to profits
 
-- **c_w = 0.80**: Workers spend 80% of wage income
-- **c_π = 0.40**: Profit-earners spend 40% of profit income
-- **Difference = 0.40**: Each dollar shifted from wages to profits reduces consumption by $0.40
+### Calculation Steps
 
----
-
-## Calculations
-
-### Step 1: Wage Bill at Risk
 ```
-wage_at_risk[i] = wage_bill[i] × ai_exposure[i]
-wage_at_risk_total = Σ wage_at_risk[i]
-```
-
-### Step 2: Wage Share Effect
-```
-wage_share_effect = wage_at_risk_total / total_wage_bill
-```
-
-This represents the fraction of the wage bill exposed to AI displacement.
-
-### Step 3: Consumption Effect
-```
-consumption_effect = (c_w - c_π) × wage_share_effect
-                   = (0.80 - 0.40) × wage_share_effect
-                   = 0.40 × wage_share_effect
-```
-
-### Step 4: Keynesian Multiplier
-```
-multiplier = 1 / (1 - AVG_C)
-           = 1 / (1 - 0.70)
-           = 3.33
-```
-
-### Step 5: Aggregate Demand Effect
-```
-ad_effect = consumption_effect × multiplier
-          = 0.40 × wage_share_effect × 3.33
-          = 1.33 × wage_share_effect
+1. wage_at_risk = Σ (wage_bill[i] × ai_exposure[i])
+2. wage_share_effect = wage_at_risk / total_wage_bill
+3. consumption_effect = (c_w - c_π) × wage_share_effect = 0.40 × wage_share_effect
+4. multiplier = 1 / (1 - c) = 1 / 0.30 = 3.33
+5. ad_effect = consumption_effect × multiplier
 ```
 
 ---
 
-## Results Interpretation
+## 4. Results
 
-### Key Outputs
+| Metric | Value | Meaning |
+|--------|-------|---------|
+| **Wage share reduction** | 0.34% | Fraction of wage bill at risk |
+| **Consumption effect** | 0.14% | Direct reduction in consumption |
+| **Keynesian multiplier** | 3.33 | Amplification factor |
+| **AD effect (with multiplier)** | 0.46% | Total demand reduction |
+| **Employment share at risk** | 0.27% | Share of jobs in exposed occupations |
+| **Wage bill at risk** | $41.1 billion | Dollar value of exposed wages |
 
-| Metric | Description |
+---
+
+## 5. Results Interpretation
+
+### What the -0.46% AD effect means
+
+- If AI-exposed wages were fully displaced to profits, **aggregate demand would fall by 0.46%**
+- This is **4x larger** than the Acemoglu-Restrepo wage effect (-0.11%)
+- The difference comes from:
+  1. **Consumption channel**: Income redistribution reduces spending
+  2. **Multiplier amplification**: 3.33x magnification of initial shock
+
+### Why larger than Acemoglu-Restrepo?
+
+| Model | Captures | Effect |
+|-------|----------|--------|
+| A-R | Supply-side task displacement | -0.11% |
+| Kaleckian | + Consumption reduction | -0.46% |
+| | + Multiplier effects | |
+
+The Kaleckian model reveals **demand-side risks** invisible to supply-side models.
+
+### Policy implications
+
+- In a **wage-led demand regime**, AI-driven redistribution is contractionary
+- Policies supporting wages (minimum wage, unions, profit-sharing) would offset demand drag
+- Fiscal policy may be needed to stabilize demand
+
+### Caveats
+
+| Caveat | Implication |
 |--------|-------------|
-| **Wage share reduction** | Fraction of wage bill at risk of displacement |
-| **Consumption effect** | Direct reduction in consumption spending |
-| **AD effect (with multiplier)** | Total demand reduction after multiplier |
-| **Employment share at risk** | Fraction of employment in exposed occupations |
+| Assumes wage-led regime | May not hold everywhere |
+| Investment held constant | Addressed in Bhaduri-Marglin |
+| Parameters from literature | Not estimated from AI data |
+| Static analysis | No dynamics modeled |
 
-### Interpreting the AD Effect
+### Comparison across models
 
-An AD effect of **-X%** means:
-- If all at-risk wages were displaced to profits, aggregate demand would fall by X%
-- This assumes a **wage-led regime** (which the US appears to be)
-- The multiplier (3.33) amplifies the initial consumption shock
-
-### What This Model Captures That A-R Doesn't
-
-1. **Demand-side effects**: Reduced consumption from redistribution
-2. **Unemployment**: Displaced workers may not find new jobs immediately
-3. **Macro feedbacks**: Lower demand → lower output → lower employment
-4. **Distributional dynamics**: Who loses matters for aggregate outcomes
-
-### Limitations
-
-1. **Assumes wage-led regime**: May not hold in all economies/periods
-2. **No investment response**: Investment held constant (addressed in Bhaduri-Marglin)
-3. **Static multiplier**: Doesn't capture dynamics
-4. **Linear relationships**: Real responses may be non-linear
-5. **Parameters from literature**: Not estimated from our data
-
----
-
-## Comparison: What Comes from Data vs. Literature
-
-| Element | From Our Data | From Literature |
-|---------|---------------|-----------------|
-| AI exposure per occupation | ✓ | |
-| Wage levels (A_MEAN) | ✓ | |
-| Employment (TOT_EMP) | ✓ | |
-| Wage bill at risk | ✓ | |
-| c_w (wage MPC) | | ✓ (0.80) |
-| c_π (profit MPC) | | ✓ (0.40) |
-| Multiplier | | ✓ (3.33) |
+| Model | Effect | What it captures |
+|-------|--------|------------------|
+| Acemoglu-Restrepo | -0.11% | Task displacement only |
+| **Kaleckian** | **-0.46%** | + Consumption + multiplier |
+| Bhaduri-Marglin | -0.75% | + Investment feedbacks |
 
 ---
 
 ## References
 
-- Kalecki, M. (1971). *Selected Essays on the Dynamics of the Capitalist Economy*. Cambridge University Press.
-
+- Kalecki, M. (1971). *Selected Essays on the Dynamics of the Capitalist Economy*. Cambridge.
 - Stockhammer, E. (2011). "Wage-led growth: An introduction." *International Journal of Labour Research*, 3(2), 167-188.
-
 - Onaran, O., & Galanis, G. (2014). "Income distribution and growth: A global model." *Environment and Planning A*, 46(10), 2489-2513.
-
-- Lavoie, M. (2014). *Post-Keynesian Economics: New Foundations*. Edward Elgar, Chapter 6.
-
+- Lavoie, M. (2014). *Post-Keynesian Economics: New Foundations*. Edward Elgar.
 - Hein, E. (2014). *Distribution and Growth after Keynes*. Edward Elgar.
