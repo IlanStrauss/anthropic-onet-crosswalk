@@ -1,5 +1,32 @@
 # Acemoglu-Restrepo Task Displacement Model
 
+## Key Findings
+
+| Metric | Value |
+|--------|-------|
+| **Wage-weighted task displacement** | 0.34% |
+| **Predicted wage effect (σ=1.5)** | -0.11% |
+| **Employment-weighted exposure** | 0.27% |
+| **Total wage bill analyzed** | $11.9 trillion |
+
+### Interpretation
+
+Based on Anthropic API usage data linked to O*NET occupations and BLS wages:
+
+- **0.34% of the total US wage bill** is in tasks currently being performed by Claude API
+- Applying the Acemoglu-Restrepo formula with σ=1.5, this implies a **potential wage decline of 0.11%** if these tasks were fully displaced
+- This is a **modest effect** reflecting the current early stage of LLM adoption
+- The employment-weighted exposure (0.27%) is slightly lower than wage-weighted (0.34%), indicating AI tasks skew toward higher-wage occupations
+
+### Caveats
+
+- These estimates reflect **current API usage patterns**, not future potential
+- The model assumes **full displacement** of exposed tasks (upper bound)
+- **Productivity gains** and **new task creation** are not captured
+- Results are sensitive to the choice of σ (elasticity parameter)
+
+---
+
 ## Theoretical Framework
 
 The Acemoglu-Restrepo (A-R) model is a **neoclassical task-based framework** for analyzing automation's labor market effects. It conceptualizes production as using a continuum of tasks, some performed by labor and some by capital/AI.

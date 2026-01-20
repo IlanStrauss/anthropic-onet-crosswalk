@@ -1,5 +1,58 @@
 # Bhaduri-Marglin Endogenous Regime Model
 
+## Key Findings
+
+| Metric | Value |
+|--------|-------|
+| **Baseline profit share** | 45.0% |
+| **New profit share (post-AI)** | 45.3% |
+| **Change in profit share** | +0.34% |
+| **Equilibrium utilization (before)** | 51.2% |
+| **Equilibrium utilization (after)** | 50.6% |
+| **Change in utilization** | -0.60% |
+| **Demand regime** | **WAGE-LED** |
+| **Output effect** | -0.75% |
+| **∂u*/∂π (regime indicator)** | -1.76 |
+
+### Interpretation
+
+The Bhaduri-Marglin model **endogenously determines** that the US economy is **wage-led**:
+
+- **∂u*/∂π = -1.76 < 0**: Confirms wage-led demand regime
+- AI-driven profit share increase (+0.34%) → **reduces** capacity utilization (-0.60%)
+- The **output effect is -0.75%**, larger than both A-R (-0.11%) and basic Kaleckian (-0.46%)
+
+### Why the Larger Effect?
+
+The Bhaduri-Marglin model captures **investment dynamics**:
+
+1. Higher profit share → some investment stimulus (g_π × Δπ)
+2. But lower utilization → investment drag (g_u × Δu)
+3. Net effect: **consumption loss dominates investment gain**
+4. System settles at **lower equilibrium utilization**
+
+### Regime Confirmation
+
+The model confirms the US is wage-led because:
+- Consumption response to wage loss > Investment response to profit gain
+- This aligns with empirical literature (Stockhammer 2017, Onaran & Galanis 2014)
+
+### Policy Implication
+
+In a **wage-led regime**, AI-driven redistribution from wages to profits is **contractionary**. Policies supporting wage share would boost aggregate demand.
+
+### Comparison Across Models
+
+| Model | Effect | Value |
+|-------|--------|-------|
+| Acemoglu-Restrepo | Wage effect | -0.11% |
+| Basic Kaleckian | AD effect | -0.46% |
+| Bhaduri-Marglin | Output effect | -0.75% |
+
+The Bhaduri-Marglin effect is largest because it captures the **full general equilibrium** including investment feedbacks.
+
+---
+
 ## Theoretical Framework
 
 The Bhaduri-Marglin (1990) model extends basic Kaleckian analysis by making **investment respond to the profit share**. This allows the model to **endogenously determine** whether an economy is wage-led or profit-led.

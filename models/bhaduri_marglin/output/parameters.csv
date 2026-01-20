@@ -1,0 +1,7 @@
+Parameter,Value,Description
+s_π,0.45,Propensity to save out of profits
+g_u,0.1,Investment sensitivity to utilization
+g_π,0.05,Investment sensitivity to profit share
+g₀,0.03,Autonomous investment rate
+u_baseline,0.8,Baseline capacity utilization
+wage_share_baseline,0.55,Baseline wage share

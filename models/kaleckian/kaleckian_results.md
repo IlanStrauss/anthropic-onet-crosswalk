@@ -1,5 +1,46 @@
 # Kaleckian Wage Share / Aggregate Demand Model
 
+## Key Findings
+
+| Metric | Value |
+|--------|-------|
+| **Wage share reduction** | 0.34% |
+| **Consumption effect** | 0.14% |
+| **Keynesian multiplier** | 3.33 |
+| **Aggregate demand effect** | 0.46% |
+| **Employment share at risk** | 0.27% |
+| **Wage bill at risk** | $41.1 billion |
+
+### Interpretation
+
+Applying Post-Keynesian distributional analysis to Anthropic API usage data:
+
+- **$41.1 billion in wages** are currently in tasks performed by Claude API
+- If these wages were displaced to profits, the **consumption effect would be 0.14%** (due to differential spending propensities)
+- With the Keynesian multiplier (3.33), the **total aggregate demand effect is 0.46%**
+- This is **larger than the Acemoglu-Restrepo wage effect (-0.11%)** because it captures demand-side feedbacks
+
+### Why This Matters
+
+The Kaleckian model reveals **macroeconomic risks** from AI-driven redistribution:
+
+1. **Demand drag**: Income shifting to profits reduces consumption
+2. **Multiplier amplification**: Initial shock is magnified 3.3x
+3. **Unemployment risk**: 0.27% of employment in exposed occupations
+
+### Comparison with Acemoglu-Restrepo
+
+| Effect | A-R Model | Kaleckian |
+|--------|-----------|-----------|
+| Wage effect | -0.11% | — |
+| AD effect | — | -0.46% |
+| Mechanism | Task displacement | Consumption reduction |
+| Assumes | Full employment | Demand-constrained |
+
+The Kaleckian effect is **4x larger** because it captures the full demand chain.
+
+---
+
 ## Theoretical Framework
 
 The Kaleckian model is a **Post-Keynesian demand-side framework** that analyzes how income distribution affects aggregate demand. Unlike neoclassical models, it:
