@@ -2,7 +2,7 @@
 Estimate AI Labor Market Effects: Mainstream & Heterodox Models
 ===============================================================
 
-Two theoretical frameworks applied to Anthropic API task exposure data:
+Three theoretical frameworks applied to Anthropic API task exposure data:
 
 1. ACEMOGLU-RESTREPO: Task displacement model (neoclassical)
    - Assumes full employment, calculates wage effects from task reallocation
@@ -11,6 +11,11 @@ Two theoretical frameworks applied to Anthropic API task exposure data:
 2. KALECKIAN: Wage share / aggregate demand model (Post-Keynesian)
    - Allows unemployment, demand-constrained output
    - Key insight: wage share ↓ → consumption ↓ → AD ↓ (if wage-led)
+
+3. BHADURI-MARGLIN: Endogenous regime determination (Post-Keynesian)
+   - Investment responds to both utilization AND profit share
+   - Determines whether economy is wage-led or profit-led
+   - Key equation: I = g₀ + g_u×u + g_π×π
 
 Author: Ilan Strauss | AI Disclosures Project
 Date: January 2026
@@ -34,6 +39,13 @@ AVG_C = 0.70 # Aggregate consumption propensity (for multiplier)
 
 # Acemoglu-Restrepo parameter
 SIGMA = 1.5  # Elasticity of substitution between tasks
+
+# Bhaduri-Marglin parameters (from literature: Stockhammer 2017, Onaran & Galanis 2014)
+S_PI = 0.45  # Propensity to save out of profits (s_π)
+G_U = 0.10   # Investment sensitivity to capacity utilization (g_u)
+G_PI = 0.05  # Investment sensitivity to profit share (g_π)
+G_0 = 0.03   # Autonomous investment rate (g₀)
+U_BASELINE = 0.80  # Baseline capacity utilization (80%)
 
 
 def load_crosswalk():
@@ -151,6 +163,103 @@ def kaleckian_model(occ, ar_results):
     }
 
 
+def bhaduri_marglin_model(occ, ar_results):
+    """
+    HETERODOX MODEL: Bhaduri-Marglin Endogenous Regime Determination
+
+    Theory: Investment responds to BOTH capacity utilization AND profit share.
+    This allows endogenous determination of whether economy is wage-led or profit-led.
+
+    Investment function: I = g₀ + g_u×u + g_π×π
+    Savings function: S = s_π × π × u (Cambridge assumption: workers don't save)
+    Equilibrium: I = S
+
+    Solving for equilibrium utilization:
+        u* = (g₀ + g_π×π) / (s_π×π - g_u)
+
+    Regime determination:
+        ∂u*/∂π > 0 → profit-led demand
+        ∂u*/∂π < 0 → wage-led demand
+
+    References:
+        - Bhaduri & Marglin (1990) "Unemployment and the real wage"
+        - Stockhammer (2017) "Determinants of the Wage Share"
+        - Onaran & Galanis (2014) "Income distribution and growth"
+
+    Returns dict with key estimates.
+    """
+    total_wage_bill = ar_results['total_wage_bill']
+
+    # Current profit share (1 - wage share in our framework)
+    # We approximate using the wage share effect from AI exposure
+    wage_share_baseline = 0.55  # Approximate US wage share
+    profit_share_baseline = 1 - wage_share_baseline
+
+    # AI-induced change in profit share (wages displaced → profits)
+    delta_profit_share = (occ['wage_at_risk'].sum() / total_wage_bill)
+    profit_share_new = profit_share_baseline + delta_profit_share
+
+    # Equilibrium utilization BEFORE AI shock
+    # u* = (g₀ + g_π×π) / (s_π×π - g_u)
+    denominator_before = (S_PI * profit_share_baseline) - G_U
+    if denominator_before <= 0:
+        # Stability condition violated - use baseline
+        u_star_before = U_BASELINE
+    else:
+        u_star_before = (G_0 + G_PI * profit_share_baseline) / denominator_before
+
+    # Equilibrium utilization AFTER AI shock (profit share increases)
+    denominator_after = (S_PI * profit_share_new) - G_U
+    if denominator_after <= 0:
+        u_star_after = U_BASELINE
+    else:
+        u_star_after = (G_0 + G_PI * profit_share_new) / denominator_after
+
+    # Change in utilization
+    delta_u = u_star_after - u_star_before
+
+    # Regime determination: ∂u*/∂π
+    # Sign of numerator: g_π×s_π×π - g_π×g_u - g₀×s_π - g_π×π×s_π = -g_π×g_u - g₀×s_π
+    # Simplifies to: -(g_π×g_u + g₀×s_π)
+    regime_numerator = -(G_PI * G_U + G_0 * S_PI)
+    regime_denominator = denominator_before ** 2 if denominator_before > 0 else 1
+
+    partial_u_partial_pi = regime_numerator / regime_denominator
+
+    if partial_u_partial_pi > 0:
+        regime = "profit-led"
+    else:
+        regime = "wage-led"
+
+    # Output effect (utilization change × baseline output)
+    # Approximating output effect as % change in utilization
+    output_effect = delta_u / U_BASELINE if U_BASELINE > 0 else 0
+
+    # Investment effect: ΔI = g_u×Δu + g_π×Δπ
+    investment_effect = G_U * delta_u + G_PI * delta_profit_share
+
+    # Savings effect: ΔS = s_π×(π×Δu + u×Δπ)
+    savings_effect = S_PI * (profit_share_baseline * delta_u + U_BASELINE * delta_profit_share)
+
+    return {
+        'profit_share_baseline': profit_share_baseline,
+        'profit_share_new': profit_share_new,
+        'delta_profit_share': delta_profit_share,
+        'u_star_before': u_star_before,
+        'u_star_after': u_star_after,
+        'delta_utilization': delta_u,
+        'partial_u_partial_pi': partial_u_partial_pi,
+        'regime': regime,
+        'output_effect': output_effect,
+        'investment_effect': investment_effect,
+        'savings_effect': savings_effect,
+        's_pi': S_PI,
+        'g_u': G_U,
+        'g_pi': G_PI,
+        'g_0': G_0
+    }
+
+
 def routine_analysis(occ):
     """
     Test whether AI follows traditional automation pattern.
@@ -187,34 +296,50 @@ def distributional_analysis(occ):
     }).reset_index()
 
 
-def save_results(occ, ar, kalecki, routine):
+def save_results(occ, ar, kalecki, bm, routine):
     """Save occupation-level data and model summary."""
     # Occupation-level file
     occ.to_csv(OUTPUT_DIR / "occupation_ai_exposure.csv", index=False)
 
     # Model summary
     summary = pd.DataFrame({
-        'Model': ['Acemoglu-Restrepo', 'Acemoglu-Restrepo', 'Kaleckian', 'Kaleckian', 'Kaleckian'],
+        'Model': [
+            'Acemoglu-Restrepo', 'Acemoglu-Restrepo',
+            'Kaleckian', 'Kaleckian', 'Kaleckian',
+            'Bhaduri-Marglin', 'Bhaduri-Marglin', 'Bhaduri-Marglin', 'Bhaduri-Marglin'
+        ],
         'Metric': [
             'Wage-weighted task displacement',
-            'Predicted wage effect (σ={})'.format(SIGMA),
+            f'Predicted wage effect (σ={SIGMA})',
             'Wage share reduction',
             'AD effect (wage-led, with multiplier)',
-            'Employment share at risk'
+            'Employment share at risk',
+            'Change in profit share',
+            'Change in capacity utilization',
+            'Demand regime',
+            'Output effect'
         ],
         'Value': [
             ar['task_displacement_share'],
             ar['wage_effect'],
             kalecki['wage_share_effect'],
             kalecki['ad_effect'],
-            kalecki['emp_share_at_risk']
+            kalecki['emp_share_at_risk'],
+            bm['delta_profit_share'],
+            bm['delta_utilization'],
+            bm['regime'],
+            bm['output_effect']
         ],
         'Percent': [
             f"{ar['task_displacement_share']*100:.2f}%",
             f"{ar['wage_effect']*100:.2f}%",
             f"{kalecki['wage_share_effect']*100:.2f}%",
             f"{kalecki['ad_effect']*100:.2f}%",
-            f"{kalecki['emp_share_at_risk']*100:.2f}%"
+            f"{kalecki['emp_share_at_risk']*100:.2f}%",
+            f"{bm['delta_profit_share']*100:.2f}%",
+            f"{bm['delta_utilization']*100:.2f}%",
+            bm['regime'],
+            f"{bm['output_effect']*100:.2f}%"
         ]
     })
     summary.to_csv(OUTPUT_DIR / "model_summary.csv", index=False)
@@ -229,12 +354,13 @@ def main():
     # Estimate models
     ar_results = acemoglu_restrepo_model(occ)
     kalecki_results = kaleckian_model(occ, ar_results)
+    bm_results = bhaduri_marglin_model(occ, ar_results)
     routine_results = routine_analysis(occ)
 
     # Save
-    save_results(occ, ar_results, kalecki_results, routine_results)
+    save_results(occ, ar_results, kalecki_results, bm_results, routine_results)
 
-    return ar_results, kalecki_results, routine_results
+    return ar_results, kalecki_results, bm_results, routine_results
 
 
 if __name__ == '__main__':
