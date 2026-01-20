@@ -11,11 +11,13 @@ This directory contains three theoretical frameworks for analyzing the labor mar
 
 ## Model Overview
 
-| Model | School | Key Effect | Baseline Result |
-|-------|--------|------------|-----------------|
-| [Acemoglu-Restrepo](acemoglu_restrepo/) | Neoclassical | Wage (pessimistic) | **-0.11%** |
-| [Kaleckian](kaleckian/) | Post-Keynesian | Aggregate demand | **-0.19%** |
-| [Bhaduri-Marglin](bhaduri_marglin/) | Post-Keynesian | Output (with investment) | **-0.39%** |
+**What this table shows:** Baseline estimated effects from each model under 100% displacement (α=1).
+
+| Model | School | Effect Variable | Baseline Effect |
+|-------|--------|-----------------|-----------------|
+| [Acemoglu-Restrepo](acemoglu_restrepo/) | Neoclassical | Δln(w): aggregate wage change | **-0.11%** |
+| [Kaleckian](kaleckian/) | Post-Keynesian | ΔY/Y: aggregate demand change | **-0.19%** |
+| [Bhaduri-Marglin](bhaduri_marglin/) | Post-Keynesian | ΔY/Y: output change (with investment) | **-0.39%** |
 
 ---
 
@@ -27,7 +29,9 @@ This directory contains three theoretical frameworks for analyzing the labor mar
 
 **Key equation:** `Δln(w) = φ - [(σ-1)/σ] × α × exposure_share`
 
-**Finding:** 0.34% of US wage bill is in AI-used tasks → **-0.11% wage effect** (under α=1, φ=0)
+Where Δln(w) = proportional change in **economy-wide average wage level** (not individual wages)
+
+**Finding:** 0.34% of US wage bill is in AI-used tasks → **-0.11% change in aggregate wage level** (under α=1, φ=0)
 
 **Limitation:** Usage ≠ displacement; effect could be zero or positive if AI complements labor
 
@@ -80,27 +84,39 @@ AI could shift structural parameters, not just displace tasks. We test how resul
 
 ### Acemoglu-Restrepo: Elasticity of Substitution (σ)
 
-| σ | Description | Wage Effect |
-|---|-------------|-------------|
+**What this table shows:** How the aggregate wage effect changes when varying σ, the elasticity of substitution between tasks.
+
+| σ (elasticity of substitution) | Description | Δln(w) (change in economy-wide average wage) |
+|--------------------------------|-------------|----------------------------------------------|
 | 1.0 | Cobb-Douglas (displacement term vanishes) | 0.00% |
 | **1.5** | **Baseline** | **-0.11%** |
 | 2.5 | Higher substitutability | -0.20% |
 
-### Kaleckian: Marginal Propensities to Consume
+*Higher σ = tasks more substitutable = labor more easily replaced by capital*
 
-| Scenario | AD Effect | Derived κ |
-|----------|-----------|-----------|
+### Kaleckian: Marginal Propensities to Consume (c_w, c_π)
+
+**What this table shows:** How the aggregate demand effect (ΔY/Y) changes when varying worker and capitalist spending propensities.
+
+| Scenario | ΔY/Y (aggregate demand change) | κ (Keynesian multiplier) |
+|----------|--------------------------------|--------------------------|
 | Workers save more (precarity) | -0.13% | 1.85 |
 | **Baseline** | **-0.19%** | **2.04** |
 | AI concentrates profits in low-spending firms | -0.25% | 2.12 |
 
+*κ = 1/(1-c) where c = c_w×ω + c_π×(1-ω) is the aggregate marginal propensity to consume*
+
 ### Bhaduri-Marglin: Investment & Saving Parameters
 
-| Scenario | Output Effect | Regime |
-|----------|---------------|--------|
-| Best case (high g_π) | -0.23% | wage-led |
+**What this table shows:** How the output effect (ΔY/Y) and demand regime change when varying investment (g_u, g_π) and saving (s_w, s_π) parameters.
+
+| Scenario | ΔY/Y (output change) | Demand Regime |
+|----------|----------------------|---------------|
+| Best case (high g_π=0.15) | -0.23% | wage-led |
 | **Baseline** | **-0.39%** | **wage-led** |
-| Worst case (strong accelerator) | -0.58% | wage-led |
+| Worst case (strong accelerator g_u=0.15) | -0.58% | wage-led |
+
+*Regime: wage-led = ∂u*/∂π < 0 (higher profit share reduces output); profit-led = opposite*
 
 ### Key Finding: Robust Wage-Led Regime
 
@@ -108,13 +124,20 @@ AI could shift structural parameters, not just displace tasks. We test how resul
 
 ---
 
-## Effect Ranges Summary
+## Summary: Effect Ranges Across Parameter Scenarios
 
-| Model | Baseline | Min | Max | Key Driver |
-|-------|----------|-----|-----|------------|
-| Acemoglu-Restrepo | -0.11% | 0.00% | -0.20% | σ (substitutability) |
-| Kaleckian | -0.19% | -0.13% | -0.25% | MPC differential |
-| Bhaduri-Marglin | -0.39% | -0.23% | -0.58% | s_w, s_π, g_u, g_π |
+**What this table shows:** The range of estimated macroeconomic effects when varying each model's key parameters across plausible values from the literature.
+
+| Model | Effect Variable | What It Measures | Baseline | Min | Max |
+|-------|-----------------|------------------|----------|-----|-----|
+| Acemoglu-Restrepo | Δln(w) | Change in economy-wide average wage level | -0.11% | 0.00% | -0.20% |
+| Kaleckian | ΔY/Y | Change in aggregate output (GDP) | -0.19% | -0.13% | -0.25% |
+| Bhaduri-Marglin | ΔY/Y | Change in aggregate output (GDP) | -0.39% | -0.23% | -0.58% |
+
+**Interpretation:**
+- Negative values = contractionary (wages or output fall)
+- All models show contractionary effects under 100% displacement (α=1) assumption
+- Actual effects could be zero or positive if AI usage reflects complementarity rather than substitution
 
 ---
 
