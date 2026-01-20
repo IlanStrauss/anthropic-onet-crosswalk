@@ -662,6 +662,20 @@ This crosswalk enables linkage to many external datasets via SOC code:
 
 - Eloundou, T., Manning, S., Mishkin, P. & Rock, D. (2023). GPTs are GPTs: An early look at the labor market impact potential of large language models. *arXiv preprint*.
 
+### Post-Keynesian / Kaleckian Models
+
+- Kalecki, M. (1954). *Theory of Economic Dynamics*. London: Allen & Unwin.
+
+- Kalecki, M. (1971). *Selected Essays on the Dynamics of the Capitalist Economy*. Cambridge University Press.
+
+- Bhaduri, A. & Marglin, S. (1990). Unemployment and the real wage: The economic basis for contesting political ideologies. *Cambridge Journal of Economics*, 14(4), 375-393.
+
+- Stockhammer, E. & Stehrer, R. (2011). Goodwin or Kalecki in demand? Functional income distribution and aggregate demand in the short run. *Review of Radical Political Economics*, 43(4), 506-522.
+
+- Onaran, Ö. & Galanis, G. (2014). Income distribution and growth: A global model. *Environment and Planning A*, 46(10), 2489-2513.
+
+- Lavoie, M. & Stockhammer, E. (2013). Wage-led growth: Concept, theories and policies. In *Wage-Led Growth* (pp. 13-39). Palgrave Macmillan.
+
 ---
 
 *Last updated: January 2026*
