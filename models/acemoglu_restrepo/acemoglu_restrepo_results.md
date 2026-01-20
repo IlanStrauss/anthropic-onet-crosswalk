@@ -146,6 +146,35 @@ Because O*NET task statements can be shared across multiple occupations, a subse
 
 ---
 
+## 6. Parameter Sensitivity: Elasticity of Substitution (σ)
+
+The wage effect depends critically on σ, the elasticity of substitution between tasks. AI might increase σ by making tasks more interchangeable.
+
+### Scenario Results
+
+| σ Value | Description | Wage Effect |
+|---------|-------------|-------------|
+| 1.0 | Cobb-Douglas (no displacement) | **0.00%** |
+| 1.25 | Moderate-low substitutability | -0.07% |
+| **1.5** | **Baseline** | **-0.11%** |
+| 2.0 | High substitutability | -0.17% |
+| 2.5 | Very high (AI raises substitutability) | **-0.20%** |
+
+### Interpretation
+
+- At σ=1 (Cobb-Douglas), task displacement has **no wage effect**—workers simply reallocate
+- As σ increases, wage effects grow because displaced workers have more difficulty substituting into remaining tasks
+- If AI makes tasks more substitutable (σ→2.5), wage effects could be **2x larger** than baseline
+
+### Literature Range
+
+Published estimates of σ vary:
+- Acemoglu & Restrepo (2018): σ ≈ 1.5
+- Earlier automation literature: σ ≈ 1.0–2.0
+- Some recent AI studies suggest higher values may be appropriate
+
+---
+
 ## References
 
 - Acemoglu, D., & Restrepo, P. (2018). "The Race between Man and Machine." *American Economic Review*, 108(6), 1488-1542.

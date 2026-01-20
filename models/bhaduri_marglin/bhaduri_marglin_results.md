@@ -211,13 +211,63 @@ Keynesian stability holds: savings more responsive than investment.
 
 ---
 
-## 6. Model Comparison Summary
+## 6. Parameter Sensitivity Analysis
 
-| Model | Effect | Sensitivity | Key Channel |
-|-------|--------|-------------|-------------|
-| Acemoglu-Restrepo | -0.11% | +2.2% | Task displacement |
-| Kaleckian | -0.45% | +2.2% | Consumption + multiplier |
-| Bhaduri-Marglin | -0.73% | +2.3% | Investment feedbacks |
+### How AI Could Shift Model Parameters
+
+AI may not only displace tasks—it could also shift the structural parameters that determine economic dynamics:
+
+| Parameter | Baseline | AI Could Raise If... | AI Could Lower If... |
+|-----------|----------|---------------------|---------------------|
+| `s_π` (profit saving) | 0.45 | Tech firms retain earnings for R&D | More dividends/buybacks |
+| `g_u` (accelerator) | 0.10 | AI makes investment more responsive | Uncertainty delays investment |
+| `g_π` (profit sensitivity) | 0.05 | Profits strongly signal investment opportunities | Profits don't translate to investment |
+
+### Scenario Results
+
+| Scenario | Parameters | Output Effect | Regime |
+|----------|------------|---------------|--------|
+| **Baseline** | s_π=0.45, g_u=0.10, g_π=0.05 | **-0.73%** | wage-led |
+| AI raises profit saving | s_π=0.55 | -0.41% | wage-led |
+| AI lowers profit saving | s_π=0.35 | -1.93% | wage-led |
+| AI boosts investment response | g_π=0.10 | -0.92% | wage-led |
+| Strong profit-led attempt | g_π=0.15 | -1.12% | wage-led |
+| Weaker accelerator | g_u=0.05 | -0.29% | wage-led |
+| Stronger accelerator | g_u=0.15 | -3.11% | wage-led |
+| AI shifts to profit-led | s_π=0.55, g_u=0.08, g_π=0.12 | -0.39% | wage-led |
+| AI intensifies wage-led | s_π=0.35, g_u=0.12, g_π=0.03 | **-4.08%** | wage-led |
+
+### Key Finding: Robust Wage-Led Regime
+
+**All 9 scenarios remain wage-led.** Even aggressive parameter shifts toward profit-led dynamics (high g_π, high s_π) do not flip the regime. This suggests:
+
+1. The US economy is **deeply wage-led** in its structural parameters
+2. AI-driven redistribution is **contractionary across all plausible scenarios**
+3. Output effects range from **-0.29% to -4.08%** depending on parameters
+
+### Worst-Case Scenario
+
+If AI intensifies wage-led dynamics (s_π=0.35, g_u=0.12, g_π=0.03):
+- Output falls by **4.08%** (vs 0.73% baseline)
+- This could occur if AI leads to more profit distribution (lower s_π) while making capacity utilization more important for investment
+
+### Best-Case Scenario (within wage-led)
+
+If AI dampens the accelerator (g_u=0.05):
+- Output falls by only **0.29%**
+- This could occur if investment becomes less responsive to utilization swings
+
+---
+
+## 7. Model Comparison Summary
+
+| Model | Effect | Range (Sensitivity) | Key Channel |
+|-------|--------|---------------------|-------------|
+| Acemoglu-Restrepo | -0.11% | 0% to -0.20% (vary σ) | Task displacement |
+| Kaleckian | -0.45% | 0.23% to 0.45% (vary MPCs) | Consumption + multiplier |
+| Bhaduri-Marglin | -0.73% | **-0.29% to -4.08%** (vary s_π, g_u, g_π) | Investment feedbacks |
+
+**Key insight:** The Bhaduri-Marglin model shows the **widest range of outcomes** because it depends on multiple interacting parameters. This highlights the importance of understanding how AI affects not just task displacement, but also saving behavior and investment dynamics.
 
 All models show **stable results** across allocation methods, with employment-weighted yielding slightly higher estimates. The **progressive amplification** from mainstream to heterodox models highlights the importance of demand-side and investment channels often ignored in conventional analysis.
 

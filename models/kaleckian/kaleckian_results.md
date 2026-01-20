@@ -173,6 +173,37 @@ The Kaleckian model reveals **demand-side risks** invisible to supply-side model
 
 ---
 
+## 6. Parameter Sensitivity: Marginal Propensities to Consume
+
+The AD effect depends on the difference between worker and capitalist consumption propensities. AI could shift these if it changes income composition or spending behavior.
+
+### Scenario Results
+
+| Scenario | c_w | c_π | AD Effect | Regime |
+|----------|-----|-----|-----------|--------|
+| **Baseline** | 0.80 | 0.40 | **0.35%** | wage-led |
+| AI concentrates profits in low-spending tech firms | 0.80 | 0.30 | 0.39% | wage-led |
+| Workers save more (precarity, gig economy) | 0.70 | 0.40 | 0.23% | wage-led |
+| Financialization: more shareholder payouts | 0.75 | 0.50 | 0.23% | wage-led |
+| Stronger wage-led: workers spend more | 0.85 | 0.35 | **0.45%** | wage-led |
+
+### Interpretation
+
+- **All scenarios remain wage-led** because c_w > c_π in all cases
+- The AD effect ranges from **0.23% to 0.45%** depending on consumption propensities
+- If AI concentrates profits in low-spending tech firms (c_π falls), the AD effect **increases**
+- If workers become more precarious and save more (c_w falls), the AD effect **decreases**
+
+### Key Insight
+
+The wage-led result is robust: as long as workers spend more than capitalists (c_w > c_π), AI-driven redistribution toward profits will be contractionary for aggregate demand.
+
+### What Would Flip the Regime?
+
+For profit-led demand, we would need c_π > c_w (capitalists spend more than workers). This is empirically implausible for the aggregate economy, though it might hold for specific sectors.
+
+---
+
 ## References
 
 - Kalecki, M. (1971). *Selected Essays on the Dynamics of the Capitalist Economy*. Cambridge.

@@ -339,6 +339,133 @@ def bhaduri_marglin_model(occ, ar_results):
     }
 
 
+def parameter_sensitivity_analysis(occ, ar_results):
+    """
+    Run models across different parameter scenarios.
+
+    AI could plausibly shift these parameters:
+    - σ: Task substitutability may increase with AI
+    - c_π: Tech firm profits may have different spending patterns
+    - g_π: AI investment may be more/less responsive to profits
+    - s_π: Tech firms may save more of profits
+
+    Returns DataFrame with results across scenarios.
+    """
+    results = []
+    total_wage_bill = ar_results['total_wage_bill']
+    task_displacement = ar_results['task_displacement_share']
+
+    # Baseline values
+    wage_share_baseline = 0.55
+    profit_share_baseline = 1 - wage_share_baseline
+    delta_profit_share = (occ['wage_at_risk'].sum() / total_wage_bill)
+
+    # =========================================================================
+    # ACEMOGLU-RESTREPO: Vary σ (elasticity of substitution)
+    # =========================================================================
+    sigma_scenarios = [
+        (1.0, "Low substitutability (σ=1.0)"),
+        (1.25, "Moderate-low (σ=1.25)"),
+        (1.5, "Baseline (σ=1.5)"),
+        (2.0, "High substitutability (σ=2.0)"),
+        (2.5, "Very high (σ=2.5) - AI makes tasks more substitutable"),
+    ]
+
+    for sigma, desc in sigma_scenarios:
+        wage_effect = -((sigma - 1) / sigma) * task_displacement
+        results.append({
+            'Model': 'Acemoglu-Restrepo',
+            'Scenario': desc,
+            'Parameter_Changed': f'σ = {sigma}',
+            'Wage_Effect': wage_effect,
+            'AD_Effect': None,
+            'Output_Effect': None,
+            'Regime': 'N/A (full employment)'
+        })
+
+    # =========================================================================
+    # KALECKIAN: Vary MPCs
+    # =========================================================================
+    kalecki_scenarios = [
+        (0.80, 0.40, "Baseline (c_w=0.80, c_π=0.40)"),
+        (0.80, 0.30, "AI concentrates profits in low-spending tech firms"),
+        (0.70, 0.40, "Workers save more (precarity, gig economy)"),
+        (0.75, 0.50, "Financialization: more shareholder payouts"),
+        (0.85, 0.35, "Stronger wage-led: workers spend more, profits less"),
+    ]
+
+    for c_w, c_pi, desc in kalecki_scenarios:
+        consumption_effect = (c_w - c_pi) * delta_profit_share
+        avg_c = 0.55 * c_w + 0.45 * c_pi  # Weighted average
+        multiplier = 1 / (1 - avg_c)
+        ad_effect = consumption_effect * multiplier
+
+        results.append({
+            'Model': 'Kaleckian',
+            'Scenario': desc,
+            'Parameter_Changed': f'c_w={c_w}, c_π={c_pi}',
+            'Wage_Effect': None,
+            'AD_Effect': ad_effect,
+            'Output_Effect': None,
+            'Regime': 'wage-led' if c_w > c_pi else 'profit-led'
+        })
+
+    # =========================================================================
+    # BHADURI-MARGLIN: Vary investment/saving parameters
+    # =========================================================================
+    bm_scenarios = [
+        # (s_π, g_u, g_π, description)
+        (0.45, 0.10, 0.05, "Baseline"),
+        (0.55, 0.10, 0.05, "AI raises profit saving (tech firms retain earnings)"),
+        (0.35, 0.10, 0.05, "AI lowers profit saving (more dividends/buybacks)"),
+        (0.45, 0.10, 0.10, "AI boosts investment response to profits"),
+        (0.45, 0.10, 0.15, "Strong profit-led: investment very profit-sensitive"),
+        (0.45, 0.05, 0.05, "Weaker accelerator (g_u=0.05)"),
+        (0.45, 0.15, 0.05, "Stronger accelerator (g_u=0.15)"),
+        (0.55, 0.08, 0.12, "AI shifts to profit-led regime"),
+        (0.35, 0.12, 0.03, "AI intensifies wage-led regime"),
+    ]
+
+    for s_pi, g_u, g_pi, desc in bm_scenarios:
+        profit_share_new = profit_share_baseline + delta_profit_share
+
+        # Equilibrium utilization BEFORE
+        denom_before = (s_pi * profit_share_baseline) - g_u
+        if denom_before <= 0:
+            u_before = U_BASELINE
+        else:
+            u_before = (G_0 + g_pi * profit_share_baseline) / denom_before
+
+        # Equilibrium utilization AFTER
+        denom_after = (s_pi * profit_share_new) - g_u
+        if denom_after <= 0:
+            u_after = U_BASELINE
+        else:
+            u_after = (G_0 + g_pi * profit_share_new) / denom_after
+
+        delta_u = u_after - u_before
+        output_effect = delta_u / U_BASELINE
+
+        # Regime determination
+        if denom_before > 0:
+            partial = -(g_pi * g_u + G_0 * s_pi) / (denom_before ** 2)
+            regime = "profit-led" if partial > 0 else "wage-led"
+        else:
+            regime = "unstable"
+
+        results.append({
+            'Model': 'Bhaduri-Marglin',
+            'Scenario': desc,
+            'Parameter_Changed': f's_π={s_pi}, g_u={g_u}, g_π={g_pi}',
+            'Wage_Effect': None,
+            'AD_Effect': None,
+            'Output_Effect': output_effect,
+            'Regime': regime
+        })
+
+    return pd.DataFrame(results)
+
+
 def routine_analysis(occ):
     """
     Test whether AI follows traditional automation pattern.
@@ -536,9 +663,32 @@ def main():
     save_results(occ_equal, occ_emp, ar_equal, ar_emp, kalecki_equal, kalecki_emp,
                  bm_equal, bm_emp, routine_equal, routine_emp)
 
+    # --- PARAMETER SENSITIVITY ANALYSIS ---
+    print("\n=== Parameter Sensitivity Analysis ===")
+    param_sensitivity = parameter_sensitivity_analysis(occ_equal, ar_equal)
+    param_sensitivity.to_csv(OUTPUT_DIR / "parameter_sensitivity.csv", index=False)
+    print(f"  - Saved: parameter_sensitivity.csv")
+
+    # Print summary of regime shifts
+    bm_scenarios = param_sensitivity[param_sensitivity['Model'] == 'Bhaduri-Marglin']
+    wage_led = (bm_scenarios['Regime'] == 'wage-led').sum()
+    profit_led = (bm_scenarios['Regime'] == 'profit-led').sum()
+    print(f"  - B-M scenarios: {wage_led} wage-led, {profit_led} profit-led")
+
+    # Range of effects
+    ar_scenarios = param_sensitivity[param_sensitivity['Model'] == 'Acemoglu-Restrepo']
+    print(f"  - A-R wage effect range: {ar_scenarios['Wage_Effect'].min()*100:.2f}% to {ar_scenarios['Wage_Effect'].max()*100:.2f}%")
+
+    kalecki_scenarios = param_sensitivity[param_sensitivity['Model'] == 'Kaleckian']
+    print(f"  - Kaleckian AD range: {kalecki_scenarios['AD_Effect'].min()*100:.2f}% to {kalecki_scenarios['AD_Effect'].max()*100:.2f}%")
+
+    bm_output = bm_scenarios['Output_Effect'].dropna()
+    print(f"  - B-M output range: {bm_output.min()*100:.2f}% to {bm_output.max()*100:.2f}%")
+
     return {
         'equal': {'ar': ar_equal, 'kalecki': kalecki_equal, 'bm': bm_equal, 'routine': routine_equal},
-        'empweighted': {'ar': ar_emp, 'kalecki': kalecki_emp, 'bm': bm_emp, 'routine': routine_emp}
+        'empweighted': {'ar': ar_emp, 'kalecki': kalecki_emp, 'bm': bm_emp, 'routine': routine_emp},
+        'param_sensitivity': param_sensitivity
     }
 
 
