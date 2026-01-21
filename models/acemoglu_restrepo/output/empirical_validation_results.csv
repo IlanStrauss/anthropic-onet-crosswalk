@@ -1,0 +1,10 @@
+Metric,Value,Formatted
+Sample size (occupations),473,473
+Mean wage growth 2022-2024,0.07900534865155413,7.90%
+β (AI exposure),-0.06614339918039835,-0.066143
+SE (AI exposure),0.012608221050581797,0.012608
+t-statistic,-5.246053262791282,-5.246
+p-value,1.553919958993022e-07,0.000000
+Significance,***,***
+R-squared,0.04578831990959931,0.0458
+Interpretation,Displacement (β<0),Displacement (β<0)***

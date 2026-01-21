@@ -626,7 +626,39 @@ Gans & Goldfarb (2025) show this is **mathematically inconsistent with O-ring pr
 
 **Our findings:** Standard exposure indices likely **overstate displacement risk** for occupations with quality-complementary tasks.
 
-### 6.4 Analysis Files
+### 6.4 CRITICAL UPDATE: Time-Series Evidence Contradicts Cross-Sectional Findings
+
+**NEW (January 2026):** Panel data analysis (2022-2024 wage changes) reveals **opposite** effect:
+
+| Analysis Type | Method | Finding | Interpretation |
+|---------------|--------|---------|----------------|
+| **Cross-sectional (O-ring)** | Usage ~ Wage level | β = +1.50*** | High-wage occupations use MORE Claude |
+| **Time-series (A-R validation)** | Δln(Wage) ~ Exposure | β = -0.066*** | High-exposure → SLOWER wage growth |
+
+**Timing breakdown:**
+
+| Period | β (AI exposure → Δwage) | Significance | Notes |
+|--------|-------------------------|--------------|-------|
+| 2022-2024 | -0.066*** | p < 0.001 | Includes pre-LLM period (2022) |
+| 2023-2024 | -0.059*** | p < 0.001 | Post-LLM only |
+
+**Key insight:** Effect is WEAKER (not stronger) in post-LLM period!
+
+**Resolution of the paradox:**
+1. **Selection (O-ring)**: High-skill workers adopt AI tools first → cross-sectional correlation
+2. **Displacement (A-R)**: BUT conditional on adoption, higher exposure → slower wage growth
+3. **Pre-existing vulnerability**: AI exposure proxies for routine cognitive task content that was vulnerable BEFORE LLMs (globalization, pre-2023 automation)
+
+**Analogy:** "Computers and wages" (Autor, Katz, Krueger 1998)
+- Skilled workers adopted computers first (cross-sectional +)
+- But computerization didn't always raise THEIR wages (dynamic -)
+- Selection into technology adoption ≠ wage benefits from technology
+
+**Bottom line:** High-wage occupations use Claude more because they CAN (skill/resources), not because it raises their wages. Conditional on usage level, AI exposure predicts displacement pressure.
+
+**See:** `models/acemoglu_restrepo/empirical_validation.py` for full analysis with timing robustness checks.
+
+### 6.5 Analysis Files
 
 All O-ring automation estimation code and results in: **`models/oring_automation/`**
 

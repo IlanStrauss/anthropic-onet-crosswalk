@@ -88,6 +88,15 @@ This document explains where all datasets come from and how they were constructe
 - Test Acemoglu-Restrepo predictions: Does AI exposure predict wage changes?
 - Control for occupation-level trends in theoretical models
 
+**CRITICAL TIMING NOTE:**
+- ChatGPT/GPT-4 released March 2023, Claude released March 2023
+- **2022 baseline predates LLM availability**
+- 2022-2024 growth tests if AI exposure proxies for pre-existing task vulnerability
+- 2023-2024 growth isolates post-LLM period
+- See `models/acemoglu_restrepo/empirical_validation.py` for timing robustness checks
+
+**Finding:** Effect is present in BOTH periods (β ≈ -0.06***), suggesting AI exposure measures task characteristics that made occupations vulnerable BEFORE LLMs, not causal LLM impact.
+
 ---
 
 ## **Supporting Data (Raw)**
