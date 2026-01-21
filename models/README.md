@@ -15,6 +15,7 @@ This directory contains three theoretical frameworks for analyzing the labor mar
 | [Acemoglu-Restrepo](acemoglu_restrepo/) | Neoclassical | Implied wage effect (index-scaled) | **-8.01%** |
 | [Kaleckian](kaleckian/) | Post-Keynesian | AD effect with multiplier | **+32.05%** |
 | [Bhaduri-Marglin](bhaduri_marglin/) | Post-Keynesian | Output effect (capacity utilization) | **-44.21%** |
+| [O-ring Automation](oring_automation/) | Empirical | Usage-wage elasticity (GLM Poisson) | **+1.50*** (p<0.001) |
 
 **CRITICAL NOTE:** These are **calibration exercises**, not econometric estimates. Effects depend heavily on:
 - Assumed displacement rates (models assume AI usage → full task automation)
@@ -106,29 +107,29 @@ ai_exposure_i = (sum of importance for AI-touched tasks) / (sum of importance fo
 
 ---
 
-## Why Results Differ Dramatically from Previous Versions
+### 4. O-ring Automation (Empirical Usage-Wage Relationship)
 
-### Effect Magnitude Comparison
+**What it models:** Econometric relationship between Claude API usage intensity and occupation wages
 
-| Model | Old (Broken Exposure) | New (Importance-Weighted) | Change |
-|-------|----------------------|--------------------------|---------|
-| **A-R Wage Effect** | -0.11% | -8.01% | **73× larger** |
-| **Kaleckian AD** | -0.19% | +32.05% | **169× larger + sign flip** |
-| **Bhaduri-Marglin Output** | -0.39% | -44.21% | **113× larger** |
+**Key equation:** `log(Usage_per_worker) = β × log(Wage) + controls`
 
-### Root Cause
+**Latest Results:**
+- **GLM Poisson (primary):** β = 1.50 (SE: 0.24)***
+- **Log-linear OLS:** β = 1.11 (SE: 0.21)***
+- **Sample size:** 490-543 occupations
+- **Significance:** p < 0.001 (highly significant)
+- **Interpretation:** 1% wage increase → 1.1-1.5% usage intensity increase
 
-**Old exposure calculation:**
-- Used global composition share or simple usage_per_worker
-- Produced exposures near 0% or 100% (no variation)
-- Undercounted actual task coverage
+**Interpretation:** Higher-wage occupations show significantly higher Claude usage intensity per worker. This positive relationship is **opposite** to displacement predictions, instead suggesting **complementarity**: AI augments rather than substitutes for high-skill labor.
 
-**New exposure calculation:**
-- Uses full O*NET task universe (17,951 task-occupation pairs)
-- Computes importance-weighted coverage: `(AI-touched importance) / (total importance)`
-- Produces realistic distribution: mean 22%, range 2%-83%
+**Theoretical connection (Gans & Goldfarb 2025):** Consistent with O-ring production where tasks are quality complements. Claude automates routine components of high-skill jobs, allowing workers to reallocate time to high-value bottleneck tasks. Usage scales with wage because automation complements valuable human judgment.
 
-**Technical detail:** The crosswalk only contains tasks WITH Claude usage. To compute proper exposure denominators, must load full O*NET task ratings to get ALL tasks per occupation.
+**Caveat:** This is **associational evidence** from cross-sectional data, not causal identification. Cannot distinguish:
+- Selection bias (firms deploy AI where returns are highest)
+- Reverse causality (AI adoption drives wage growth)
+- Omitted variables (skill, technology adoption capacity)
+
+See `oring_automation/INTERPRETATION.md` for full theoretical discussion.
 
 ---
 
@@ -149,14 +150,6 @@ Top 5 Most Exposed Occupations:
 4. Public Relations Specialists: 64.7%
 5. Technical Writers: 61.3%
 ```
-
-### Sanity Checks Passed
-
-✅ **Wage shares sum to 1.0** (within tolerance)
-✅ **Employment shares sum to 1.0** (within tolerance)
-✅ **Exposure bounded [0,1]** with max = 0.831 (not 1.0, as expected)
-✅ **Exposure mean "reasonable"** (22%, not 50%+ saturation)
-
 ---
 
 ## Data Inputs
