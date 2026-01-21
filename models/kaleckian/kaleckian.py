@@ -8,9 +8,10 @@ redistribution affects aggregate demand through consumption channels.
 Key insight: c_w > c_π → wage share ↓ → consumption ↓ → AD ↓
 
 CORRECTIONS based on ChatGPT feedback:
-- Fixed missing columns (task_importance, job_zone vs Job Zone)
-- Use first_nonnull to avoid false missingness
-- Clarify ai_exposure is global share, not within-occupation intensity
+- Replaced broken global-share exposure with usage_per_worker intensity
+- Scale exposure to [0,1] via p99 cap (avoids outlier distortion)
+- Simplified aggregation (no task_importance weighting)
+- Use first_nonnull to avoid false missingness from 'first' aggregation
 
 Author: Ilan Strauss | AI Disclosures Project
 Date: January 2026 (corrected)
@@ -46,50 +47,30 @@ def load_crosswalk():
 
 def calculate_occupation_exposure(df):
     """
-    Aggregate task-level data to occupation level.
+    Build occupation-level table with proper exposure proxy.
 
-    WARNING: This produces GLOBAL API usage share, not within-occupation exposure.
-    ai_exposure = (API usage for occupation) / (total API usage across all occupations)
+    Exposure proxy: usage intensity per worker, scaled to [0,1] with p99 cap.
+    This avoids broken task_importance weighting (not in CSV) and global share confusion.
     """
-    df = df.copy()
+    # Occupation-level totals
+    occ = df.groupby("onet_soc_code").agg(
+        api_usage_count=("api_usage_count", "sum"),
+        A_MEAN=("A_MEAN", first_nonnull),
+        A_MEDIAN=("A_MEDIAN", first_nonnull),
+        TOT_EMP=("TOT_EMP", first_nonnull),
+        onet_occupation_title=("onet_occupation_title", first_nonnull),
+        job_zone=("job_zone", first_nonnull)
+    ).reset_index()
 
-    # FIX: Handle column name variations
-    if "Job Zone" in df.columns and "job_zone" not in df.columns:
-        df = df.rename(columns={"Job Zone": "job_zone"})
+    # Drop rows missing key denominators
+    occ = occ[occ["A_MEAN"].notna() & occ["TOT_EMP"].notna() & (occ["TOT_EMP"] > 0)].copy()
 
-    # FIX: task_importance not in attached CSV → set neutral placeholder
-    if "task_importance" not in df.columns:
-        df["task_importance"] = 1.0
+    # Exposure proxy: usage per worker, scaled to [0,1] with p99 cap
+    occ["usage_per_worker"] = occ["api_usage_count"] / occ["TOT_EMP"]
+    p99 = occ["usage_per_worker"].quantile(0.99)
+    occ["ai_exposure"] = (occ["usage_per_worker"] / p99).clip(0, 1)
 
-    # FIX: nonroutine_total not in attached CSV → optional, skip if missing
-    has_nonroutine = "nonroutine_total" in df.columns
-
-    total_usage = df['api_usage_count'].sum()
-    df['task_usage_share'] = df['api_usage_count'] / total_usage if total_usage > 0 else 0.0
-    df['weighted_exposure'] = df['task_usage_share'] * df['task_importance'].fillna(df['task_importance'].mean())
-
-    agg_dict = {
-        'api_usage_count': 'sum',
-        'task_usage_share': 'sum',  # This is occupation's share of ALL API usage (global)
-        'weighted_exposure': 'sum',
-        'A_MEAN': first_nonnull,  # FIX: Use first_nonnull, not 'first'
-        'A_MEDIAN': first_nonnull,
-        'TOT_EMP': first_nonnull,
-        'onet_occupation_title': first_nonnull,
-        'job_zone': first_nonnull,
-        'task_importance': 'mean'
-    }
-
-    if has_nonroutine:
-        agg_dict['nonroutine_total'] = 'mean'
-
-    occ = df.groupby('onet_soc_code', as_index=False).agg(agg_dict)
-
-    # CLARIFY: This is global usage share, not occupation-specific exposure intensity
-    occ['occupation_usage_share_global'] = occ['task_usage_share']
-    occ['ai_exposure_proxy'] = occ['weighted_exposure']
-
-    return occ.dropna(subset=['TOT_EMP', 'A_MEAN']).copy()
+    return occ
 
 
 def kaleckian_model(occ):
@@ -100,15 +81,15 @@ def kaleckian_model(occ):
     ΔC = (c_w - c_π) × Δω
     ΔY = κ × ΔC where κ = 1/(1-c)
 
-    WARNING: Uses global API usage share as proxy for wage displacement share.
+    Uses usage_per_worker exposure proxy scaled to [0,1].
     """
     # Calculate wage bill
+    occ = occ.copy()
     occ['wage_bill'] = occ['TOT_EMP'] * occ['A_MEAN']
     total_wage_bill = occ['wage_bill'].sum()
 
     # Wage bill at risk (exposure-weighted)
-    # WARNING: ai_exposure_proxy is global usage share, not within-occupation intensity
-    occ['wage_at_risk'] = occ['wage_bill'] * occ['ai_exposure_proxy']
+    occ['wage_at_risk'] = occ['wage_bill'] * occ['ai_exposure']
     wage_at_risk = occ['wage_at_risk'].sum()
     wage_share_effect = wage_at_risk / total_wage_bill if total_wage_bill > 0 else 0.0
 
@@ -122,7 +103,7 @@ def kaleckian_model(occ):
     ad_effect = consumption_effect * multiplier
 
     # Employment at risk
-    occ['emp_at_risk'] = occ['TOT_EMP'] * occ['ai_exposure_proxy']
+    occ['emp_at_risk'] = occ['TOT_EMP'] * occ['ai_exposure']
     total_emp = occ['TOT_EMP'].sum()
     emp_at_risk = occ['emp_at_risk'].sum()
 
@@ -178,8 +159,8 @@ def save_results(results, occ):
     print("KALECKIAN MODEL RESULTS")
     print("="*80)
     print(summary.to_string(index=False))
-    print("\nNOTE: ai_exposure_proxy is global API usage share, not within-occupation intensity.")
-    print("For proper exposure index, need within-occupation task coverage calculation.")
+    print("\nNOTE: ai_exposure = usage_per_worker (scaled to [0,1] via p99 cap).")
+    print("This is an occupation-level intensity proxy, not task-coverage or displacement share.")
 
     return summary
 
