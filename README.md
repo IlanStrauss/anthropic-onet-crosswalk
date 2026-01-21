@@ -581,12 +581,80 @@ This crosswalk follows conventions established in the labor economics literature
 
 ---
 
-## 6. File Structure
+## 6. O-Ring Automation Analysis
+
+### 6.1 Key Finding: The Automation Wage Paradox
+
+Using this crosswalk, we estimate the relationship between Claude API usage and wages following the **O-ring automation framework** (Gans & Goldfarb, 2025).
+
+**Standard prediction:** High AI exposure → wage displacement
+
+**Our finding:** **Higher-wage occupations show HIGHER Claude usage intensity**
+
+| Model | β (log wage) | Interpretation |
+|-------|--------------|----------------|
+| **Poisson (SOC-level)** | **1.50*** (0.24) | 10% ↑ wage → 15% ↑ usage/worker |
+| Poisson (no ambiguous) | 1.49*** (0.25) | Robust to matching uncertainty |
+| Log-linear OLS | 1.11*** (0.21) | Alternative specification |
+
+***: p < 0.001
+
+### 6.2 Why This Matters: Task Complementarity vs. Separability
+
+**Standard task-based models** (Frey & Osborne, Webb, Felten et al.) assume:
+- Tasks are **separable**: Y = Σ f(task_s)
+- Automating task s → substitutes for labor
+- Prediction: High exposure → **lower wages**
+
+**O-ring framework** (Gans & Goldfarb) assumes:
+- Tasks are **quality complements**: Y = ∏ q_s
+- Automating task s → worker reallocates time to remaining tasks
+- Quality of remaining tasks increases: h/(n-k) > h/n
+- Prediction: Under partial automation → **higher wages**
+
+**Our evidence supports O-ring complementarity:**
+- Higher-wage occupations (Software Developers, Financial Analysts, Architects) have MORE Claude usage, not less
+- Consistent with Claude automating routine components while scaling value of high-skill bottleneck tasks
+
+### 6.3 Implications for AI Exposure Studies
+
+**Linear exposure indices** aggregate as: Exposure_occ = Σ w_t × P(task_t automatable)
+
+Gans & Goldfarb (2025) show this is **mathematically inconsistent with O-ring production**. When tasks are complements:
+- Automating 9 out of 10 tasks ≠ 90% exposure if the 10th task is a bottleneck
+- Worker reallocates time to bottleneck → raises its quality → can increase wages
+
+**Our findings:** Standard exposure indices likely **overstate displacement risk** for occupations with quality-complementary tasks.
+
+### 6.4 Analysis Files
+
+All O-ring automation estimation code and results in: **`models/oring_automation/`**
+
+| File | Description |
+|------|-------------|
+| `estimate_oring_models.py` | Full estimation script (Setup A & B) |
+| `INTERPRETATION.md` | Detailed O-ring framework analysis |
+| `model_summary.csv` | Regression coefficients for all specifications |
+| `soc_level_data.csv` | SOC-level aggregated data (490 occupations) |
+
+**Models estimated:**
+- Setup A (SOC-level): Poisson/NegBin with employment offset
+- Setup B (Task-level): OLS with SOC clustering
+- Sensitivity: Excluding ambiguous mappings
+
+## 7. File Structure
 
 ```
 anthropic-onet-crosswalk/
 ├── README.md                              # This documentation
 ├── THEORETICAL_FRAMEWORK.md               # Economic theory guide
+│
+├── models/
+│   └── oring_automation/                  # O-ring automation analysis (NEW)
+│       ├── estimate_oring_models.py       # Estimation script
+│       ├── INTERPRETATION.md              # O-ring framework interpretation
+│       ├── model_summary.csv              # Regression results
+│       └── soc_level_data.csv             # Aggregated SOC-level data
 │
 ├── data/
 │   ├── raw/
