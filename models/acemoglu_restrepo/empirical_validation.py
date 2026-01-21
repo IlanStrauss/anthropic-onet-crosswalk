@@ -88,30 +88,39 @@ print(f"  Columns: {wage_wide.columns.tolist()}")
 # - Should use 2023-2024 for post-LLM period
 # - BUT 2022-2024 tests if AI exposure proxies for pre-existing task vulnerability
 
-# Compute BOTH periods for comparison
+# Compute ALL periods for comparison
 wage_wide = wage_wide[
     wage_wide['wage_annual_mean_2022'].notna() &
+    wage_wide['wage_annual_mean_2023'].notna() &
     wage_wide['wage_annual_mean_2024'].notna() &
     (wage_wide['wage_annual_mean_2022'] > 0) &
+    (wage_wide['wage_annual_mean_2023'] > 0) &
     (wage_wide['wage_annual_mean_2024'] > 0)
 ].copy()
 
-# 2022-2024 (includes pre-LLM period)
+# Log wages
 wage_wide['ln_wage_2022'] = np.log(wage_wide['wage_annual_mean_2022'])
 wage_wide['ln_wage_2023'] = np.log(wage_wide['wage_annual_mean_2023'])
 wage_wide['ln_wage_2024'] = np.log(wage_wide['wage_annual_mean_2024'])
 
-wage_wide['delta_ln_wage_2022_2024'] = wage_wide['ln_wage_2024'] - wage_wide['ln_wage_2022']
+# Three periods:
+# 1. 2022-2023: Transition period (LLMs released March 2023, May 2023 survey = 2 months exposure)
+# 2. 2023-2024: Clean post-LLM period (full year of availability)
+# 3. 2022-2024: Mixed period (for comparison to earlier work)
+wage_wide['delta_ln_wage_2022_2023'] = wage_wide['ln_wage_2023'] - wage_wide['ln_wage_2022']
 wage_wide['delta_ln_wage_2023_2024'] = wage_wide['ln_wage_2024'] - wage_wide['ln_wage_2023']
+wage_wide['delta_ln_wage_2022_2024'] = wage_wide['ln_wage_2024'] - wage_wide['ln_wage_2022']
 
-wage_wide['wage_growth_pct_2022_2024'] = (wage_wide['wage_annual_mean_2024'] /
+wage_wide['wage_growth_pct_2022_2023'] = (wage_wide['wage_annual_mean_2023'] /
                                            wage_wide['wage_annual_mean_2022'] - 1) * 100
 wage_wide['wage_growth_pct_2023_2024'] = (wage_wide['wage_annual_mean_2024'] /
                                            wage_wide['wage_annual_mean_2023'] - 1) * 100
+wage_wide['wage_growth_pct_2022_2024'] = (wage_wide['wage_annual_mean_2024'] /
+                                           wage_wide['wage_annual_mean_2022'] - 1) * 100
 
-# Use 2022-2024 as primary (tests if exposure proxies task vulnerability)
-wage_wide['delta_ln_wage'] = wage_wide['delta_ln_wage_2022_2024']
-wage_wide['wage_growth_pct'] = wage_wide['wage_growth_pct_2022_2024']
+# Use 2023-2024 as primary (clean post-LLM period)
+wage_wide['delta_ln_wage'] = wage_wide['delta_ln_wage_2023_2024']
+wage_wide['wage_growth_pct'] = wage_wide['wage_growth_pct_2023_2024']
 
 # Baseline employment (2022)
 wage_wide['ln_employment_2022'] = np.log(wage_wide['employment_2022'].clip(lower=1))

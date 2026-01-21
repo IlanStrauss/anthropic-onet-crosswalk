@@ -1,0 +1,5 @@
+Specification,Estimate,SE,P_value,Interpretation
+Simple DiD (Binary),-0.014443811041690593,,,-1.44% additional change in high-exposure group
+Regression DiD (Binary),-0.014446042681287172,0.005210235773941343,0.005560574156963879,-1.44% additional change in high-exposure group
+Regression DiD (Continuous),-0.0513779606761214,0.014349570338163777,0.000342999174877072,-0.51% per 10pp exposure increase
+Quartile DiD (Q4 vs Q1),-0.019218764870953736,,,-1.92% Q4 vs Q1 difference

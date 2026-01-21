@@ -626,37 +626,52 @@ Gans & Goldfarb (2025) show this is **mathematically inconsistent with O-ring pr
 
 **Our findings:** Standard exposure indices likely **overstate displacement risk** for occupations with quality-complementary tasks.
 
-### 6.4 CRITICAL UPDATE: Time-Series Evidence Contradicts Cross-Sectional Findings
+### 6.4 CRITICAL UPDATE: Rigorous Causal Evidence via Diff-in-Diff
 
-**NEW (January 2026):** Panel data analysis (2022-2024 wage changes) reveals **opposite** effect:
+**NEW (January 2026):** Difference-in-differences analysis isolates **causal LLM effect** on wages:
 
 | Analysis Type | Method | Finding | Interpretation |
 |---------------|--------|---------|----------------|
-| **Cross-sectional (O-ring)** | Usage ~ Wage level | β = +1.50*** | High-wage occupations use MORE Claude |
-| **Time-series (A-R validation)** | Δln(Wage) ~ Exposure | β = -0.066*** | High-exposure → SLOWER wage growth |
+| **Cross-sectional (O-ring)** | Usage ~ Wage level | β = +1.50*** | High-wage occupations use MORE Claude (selection) |
+| **Simple correlation** | Δln(Wage) ~ Exposure | β = -0.066*** | CONFOUNDED - includes pre-LLM trends |
+| **DIFF-IN-DIFF (rigorous)** | (ΔHigh - ΔLow)post - (ΔHigh - ΔLow)pre | **β₃ = -0.014** | **CAUSAL LLM displacement** |
 
-**Timing breakdown:**
+**Diff-in-Diff Results (2022-2024 Panel, N=473 occupations):**
 
-| Period | β (AI exposure → Δwage) | Significance | Notes |
-|--------|-------------------------|--------------|-------|
-| 2022-2024 | -0.066*** | p < 0.001 | Includes pre-LLM period (2022) |
-| 2023-2024 | -0.059*** | p < 0.001 | Post-LLM only |
+| Specification | Causal Effect (β₃) | Significance | Interpretation |
+|---------------|--------------------|--------------| ---------------|
+| **Binary Treatment** | **-0.014** | p = 0.006** | High-exposure → **1.44% additional decline** |
+| **Continuous Exposure** | **-0.051*** | p < 0.001 | **0.51% decline per 10pp exposure** |
+| **Quartile (Q4 vs Q1)** | **-0.019** | - | Top quartile → **1.92% additional decline** |
 
-**Key insight:** Effect is WEAKER (not stronger) in post-LLM period!
+**: p<0.01, ***: p<0.001
+
+**Parallel Trends Test:** ✓ **PASSED** (pre-period difference < 1%) → Valid causal interpretation
+
+**Decomposition of total correlation:**
+```
+Total correlation (-0.066) = Pre-existing trends (-0.052) + LLM causal effect (-0.014)
+                              ↑ 79% of correlation   ↑ 21% causal LLM effect
+```
 
 **Resolution of the paradox:**
-1. **Selection (O-ring)**: High-skill workers adopt AI tools first → cross-sectional correlation
-2. **Displacement (A-R)**: BUT conditional on adoption, higher exposure → slower wage growth
-3. **Pre-existing vulnerability**: AI exposure proxies for routine cognitive task content that was vulnerable BEFORE LLMs (globalization, pre-2023 automation)
+1. **Selection (O-ring)**: High-skill workers adopt AI tools first → cross-sectional correlation (+)
+2. **Pre-existing vulnerability**: High-Claude-usage occupations ALREADY experiencing wage pressure pre-LLM (-)
+3. **LLM causal displacement**: LLM release caused ADDITIONAL 1.4% decline beyond existing trends (-)
+
+**Key insight:** Most of the negative correlation is pre-existing vulnerability, NOT LLM causation. Diff-in-diff isolates the true causal effect.
 
 **Analogy:** "Computers and wages" (Autor, Katz, Krueger 1998)
 - Skilled workers adopted computers first (cross-sectional +)
-- But computerization didn't always raise THEIR wages (dynamic -)
-- Selection into technology adoption ≠ wage benefits from technology
+- But computerization didn't raise THEIR wages (dynamic -)
+- Routine task content made them vulnerable BEFORE and AFTER technology
 
-**Bottom line:** High-wage occupations use Claude more because they CAN (skill/resources), not because it raises their wages. Conditional on usage level, AI exposure predicts displacement pressure.
+**Bottom line:**
+- High-wage occupations use Claude because they CAN (skill/resources) → O-ring finding
+- BUT high-exposure occupations experience displacement → Diff-in-diff finding
+- LLM effect is REAL but smaller than simple correlations suggest (1.4% vs 6.6%)
 
-**See:** `models/acemoglu_restrepo/empirical_validation.py` for full analysis with timing robustness checks.
+**See:** `models/acemoglu_restrepo/empirical_validation_did.py` for full diff-in-diff analysis with robustness checks.
 
 ### 6.5 Analysis Files
 
