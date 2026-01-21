@@ -1,6 +1,6 @@
 """
-Bhaduri-Marglin Endogenous Regime Model (CORRECTED)
-====================================================
+Bhaduri-Marglin Endogenous Regime Model (WITH IMPORTANCE WEIGHTING)
+====================================================================
 
 Post-Keynesian model with investment responding to both capacity utilization
 AND profit share. Endogenously determines wage-led vs profit-led regime.
@@ -8,24 +8,28 @@ AND profit share. Endogenously determines wage-led vs profit-led regime.
 Investment function: I = g₀ + g_u×u + g_π×π
 Equilibrium: u* = (g₀ + g_π×π) / (s_π×π - g_u)
 
-CORRECTIONS based on ChatGPT feedback:
-- Fixed missing columns (task_importance, job_zone vs Job Zone)
-- Use first_nonnull to avoid false missingness
-- Calibrate g₀ to hit baseline utilization
-- Clarify ai_exposure is global share, not within-occupation intensity
+LATEST VERSION: Now uses O*NET task importance weights!
+- Exposure = (importance of AI-touched tasks) / (total task importance)
+- Proper task displacement share concept
 
 Author: Ilan Strauss | AI Disclosures Project
-Date: January 2026 (corrected)
+Date: January 2026 (with importance weighting)
 """
+
+import sys
+from pathlib import Path
+
+# Add models/utils to path
+ROOT_DIR = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(ROOT_DIR / "models" / "utils"))
 
 import numpy as np
 import pandas as pd
-from pathlib import Path
+from exposure_calculation import calculate_importance_weighted_exposure
 
 # --- CONFIGURATION ---
-ROOT_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = ROOT_DIR / "data"
-CROSSWALK_FILE = DATA_DIR / "processed" / "master_task_crosswalk_with_wages.csv"
+CROSSWALK_FILE = DATA_DIR / "processed" / "master_task_crosswalk_with_importance.csv"
 OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -37,63 +41,9 @@ U_BASELINE = 0.80  # Baseline capacity utilization (80%)
 WAGE_SHARE_BASELINE = 0.55  # Approximate US wage share
 
 
-def first_nonnull(x):
-    """Get first non-null value to avoid false missingness from 'first'."""
-    x = x.dropna()
-    return x.iloc[0] if len(x) else np.nan
-
-
 def load_crosswalk():
-    """Load crosswalk with BLS wage data."""
+    """Load crosswalk with BLS wage data and O*NET task importance."""
     return pd.read_csv(CROSSWALK_FILE)
-
-
-def calculate_occupation_exposure(df):
-    """
-    Aggregate task-level data to occupation level.
-
-    WARNING: This produces GLOBAL API usage share, not within-occupation exposure.
-    ai_exposure = (API usage for occupation) / (total API usage across all occupations)
-    """
-    df = df.copy()
-
-    # FIX: Handle column name variations
-    if "Job Zone" in df.columns and "job_zone" not in df.columns:
-        df = df.rename(columns={"Job Zone": "job_zone"})
-
-    # FIX: task_importance not in attached CSV → set neutral placeholder
-    if "task_importance" not in df.columns:
-        df["task_importance"] = 1.0
-
-    # FIX: nonroutine_total not in attached CSV → optional, skip if missing
-    has_nonroutine = "nonroutine_total" in df.columns
-
-    total_usage = df['api_usage_count'].sum()
-    df['task_usage_share'] = df['api_usage_count'] / total_usage if total_usage > 0 else 0.0
-    df['weighted_exposure'] = df['task_usage_share'] * df['task_importance'].fillna(df['task_importance'].mean())
-
-    agg_dict = {
-        'api_usage_count': 'sum',
-        'task_usage_share': 'sum',  # This is occupation's share of ALL API usage (global)
-        'weighted_exposure': 'sum',
-        'A_MEAN': first_nonnull,  # FIX: Use first_nonnull, not 'first'
-        'A_MEDIAN': first_nonnull,
-        'TOT_EMP': first_nonnull,
-        'onet_occupation_title': first_nonnull,
-        'job_zone': first_nonnull,
-        'task_importance': 'mean'
-    }
-
-    if has_nonroutine:
-        agg_dict['nonroutine_total'] = 'mean'
-
-    occ = df.groupby('onet_soc_code', as_index=False).agg(agg_dict)
-
-    # CLARIFY: This is global usage share, not occupation-specific exposure intensity
-    occ['occupation_usage_share_global'] = occ['task_usage_share']
-    occ['ai_exposure_proxy'] = occ['weighted_exposure']
-
-    return occ.dropna(subset=['TOT_EMP', 'A_MEAN']).copy()
 
 
 def bhaduri_marglin_model(occ):
@@ -110,8 +60,8 @@ def bhaduri_marglin_model(occ):
     occ['wage_bill'] = occ['TOT_EMP'] * occ['A_MEAN']
     total_wage_bill = occ['wage_bill'].sum()
 
-    # Wage at risk (WARNING: using global usage share as proxy for displacement share)
-    occ['wage_at_risk'] = occ['wage_bill'] * occ['ai_exposure_proxy']
+    # Wage at risk (using importance-weighted exposure)
+    occ['wage_at_risk'] = occ['wage_bill'] * occ['ai_exposure']
 
     # Profit share calculations
     profit_share_baseline = 1 - WAGE_SHARE_BASELINE
@@ -248,7 +198,7 @@ def save_results(results, occ):
 def main():
     """Run Bhaduri-Marglin model."""
     df = load_crosswalk()
-    occ = calculate_occupation_exposure(df)
+    occ = calculate_importance_weighted_exposure(df)
     results, occ = bhaduri_marglin_model(occ)
     summary = save_results(results, occ)
     return results, summary

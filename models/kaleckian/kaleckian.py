@@ -1,30 +1,35 @@
 """
-Kaleckian Wage Share / Aggregate Demand Model (CORRECTED)
-==========================================================
+Kaleckian Wage Share / Aggregate Demand Model (WITH IMPORTANCE WEIGHTING)
+==========================================================================
 
 Post-Keynesian demand-side framework analyzing how AI-driven income
 redistribution affects aggregate demand through consumption channels.
 
 Key insight: c_w > c_π → wage share ↓ → consumption ↓ → AD ↓
 
-CORRECTIONS based on ChatGPT feedback:
-- Replaced broken global-share exposure with usage_per_worker intensity
-- Scale exposure to [0,1] via p99 cap (avoids outlier distortion)
-- Simplified aggregation (no task_importance weighting)
-- Use first_nonnull to avoid false missingness from 'first' aggregation
+LATEST VERSION: Now uses O*NET task importance weights!
+- Exposure = (importance of AI-touched tasks) / (total task importance)
+- Proper "task displacement share" concept per A-R framework
+- Much better than simple usage_per_worker intensity
 
 Author: Ilan Strauss | AI Disclosures Project
-Date: January 2026 (corrected)
+Date: January 2026 (with importance weighting)
 """
+
+import sys
+from pathlib import Path
+
+# Add models/utils to path for shared utilities
+ROOT_DIR = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(ROOT_DIR / "models" / "utils"))
 
 import numpy as np
 import pandas as pd
-from pathlib import Path
+from exposure_calculation import calculate_importance_weighted_exposure
 
 # --- CONFIGURATION ---
-ROOT_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = ROOT_DIR / "data"
-CROSSWALK_FILE = DATA_DIR / "processed" / "master_task_crosswalk_with_wages.csv"
+CROSSWALK_FILE = DATA_DIR / "processed" / "master_task_crosswalk_with_importance.csv"
 OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -34,43 +39,9 @@ C_PI = 0.40  # Marginal propensity to consume out of profits
 AVG_C = 0.70 # Aggregate consumption propensity (for multiplier)
 
 
-def first_nonnull(x):
-    """Get first non-null value to avoid false missingness from 'first'."""
-    x = x.dropna()
-    return x.iloc[0] if len(x) else np.nan
-
-
 def load_crosswalk():
-    """Load crosswalk with BLS wage data."""
+    """Load crosswalk with BLS wage data and O*NET task importance."""
     return pd.read_csv(CROSSWALK_FILE)
-
-
-def calculate_occupation_exposure(df):
-    """
-    Build occupation-level table with proper exposure proxy.
-
-    Exposure proxy: usage intensity per worker, scaled to [0,1] with p99 cap.
-    This avoids broken task_importance weighting (not in CSV) and global share confusion.
-    """
-    # Occupation-level totals
-    occ = df.groupby("onet_soc_code").agg(
-        api_usage_count=("api_usage_count", "sum"),
-        A_MEAN=("A_MEAN", first_nonnull),
-        A_MEDIAN=("A_MEDIAN", first_nonnull),
-        TOT_EMP=("TOT_EMP", first_nonnull),
-        onet_occupation_title=("onet_occupation_title", first_nonnull),
-        job_zone=("job_zone", first_nonnull)
-    ).reset_index()
-
-    # Drop rows missing key denominators
-    occ = occ[occ["A_MEAN"].notna() & occ["TOT_EMP"].notna() & (occ["TOT_EMP"] > 0)].copy()
-
-    # Exposure proxy: usage per worker, scaled to [0,1] with p99 cap
-    occ["usage_per_worker"] = occ["api_usage_count"] / occ["TOT_EMP"]
-    p99 = occ["usage_per_worker"].quantile(0.99)
-    occ["ai_exposure"] = (occ["usage_per_worker"] / p99).clip(0, 1)
-
-    return occ
 
 
 def kaleckian_model(occ):
@@ -159,8 +130,8 @@ def save_results(results, occ):
     print("KALECKIAN MODEL RESULTS")
     print("="*80)
     print(summary.to_string(index=False))
-    print("\nNOTE: ai_exposure = usage_per_worker (scaled to [0,1] via p99 cap).")
-    print("This is an occupation-level intensity proxy, not task-coverage or displacement share.")
+    print("\nNOTE: ai_exposure = (importance of AI-touched tasks) / (total task importance).")
+    print("This is the proper A-R 'task displacement share' concept with O*NET importance weights.")
 
     return summary
 
@@ -168,7 +139,7 @@ def save_results(results, occ):
 def main():
     """Run Kaleckian model."""
     df = load_crosswalk()
-    occ = calculate_occupation_exposure(df)
+    occ = calculate_importance_weighted_exposure(df)
     results, occ = kaleckian_model(occ)
     summary = save_results(results, occ)
     return results, summary

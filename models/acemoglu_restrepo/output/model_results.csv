@@ -1,5 +1,7 @@
-Metric,Value,Percent
-Wage-weighted task displacement,0.0034491921255584554,0.34%
-Predicted wage effect (σ=1.5),-0.0011497307085194851,-0.11%
-Employment-weighted exposure,0.0026813857190868683,0.27%
-Total wage bill ($),11921258628100.0,"$11,921,258,628,100"
+Metric,Value,Formatted
+Wage-weighted task displacement,0.24035648112892538,24.04%
+"Implied wage effect (σ=1.5, index-scaled)",-0.08011882704297513,-8.01%
+Employment-weighted exposure,0.22274163078282033,22.27%
+Exposure max (sanity check),0.8309940674287368,0.8310
+Exposure mean,0.21822966557982604,0.2182
+Total wage bill ($),11683053935600.0,"$11,683,053,935,600"

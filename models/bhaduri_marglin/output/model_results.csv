@@ -1,10 +1,11 @@
 Metric,Value,Formatted
+g₀ (calibrated),0.05949999999999999,0.0595
 Baseline profit share,0.44999999999999996,45.0%
-New profit share (post-AI),0.4534491921255584,45.3%
-Change in profit share,0.0034491921255584554,0.34%
-Equilibrium utilization (before),0.5121951219512196,51.2%
-Equilibrium utilization (after),0.5062121874671694,50.6%
-Change in utilization,-0.005982934484050184,-0.60%
+New profit share (post-AI),0.6903564811289253,69.0%
+Change in profit share,0.24035648112892538,24.04%
+Equilibrium utilization (before),0.8,80.0%
+Equilibrium utilization (after),0.44630038055995463,44.6%
+Change in utilization,-0.3536996194400454,-35.37%
 Demand regime,wage-led,wage-led
-Output effect,-0.00747866810506273,-0.75%
-∂u*/∂π (regime indicator),-1.7608566329565742,-1.7609
+Output effect,-0.4421245243000567,-44.21%
+∂u*/∂π (regime indicator),-3.02439024390244,-3.0244
