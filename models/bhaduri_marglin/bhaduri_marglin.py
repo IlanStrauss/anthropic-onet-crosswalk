@@ -1,6 +1,6 @@
 """
-Bhaduri-Marglin Endogenous Regime Model
-=======================================
+Bhaduri-Marglin Endogenous Regime Model (CORRECTED)
+====================================================
 
 Post-Keynesian model with investment responding to both capacity utilization
 AND profit share. Endogenously determines wage-led vs profit-led regime.
@@ -8,10 +8,17 @@ AND profit share. Endogenously determines wage-led vs profit-led regime.
 Investment function: I = g₀ + g_u×u + g_π×π
 Equilibrium: u* = (g₀ + g_π×π) / (s_π×π - g_u)
 
+CORRECTIONS based on ChatGPT feedback:
+- Fixed missing columns (task_importance, job_zone vs Job Zone)
+- Use first_nonnull to avoid false missingness
+- Calibrate g₀ to hit baseline utilization
+- Clarify ai_exposure is global share, not within-occupation intensity
+
 Author: Ilan Strauss | AI Disclosures Project
-Date: January 2026
+Date: January 2026 (corrected)
 """
 
+import numpy as np
 import pandas as pd
 from pathlib import Path
 
@@ -26,9 +33,14 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 S_PI = 0.45  # Propensity to save out of profits (s_π)
 G_U = 0.10   # Investment sensitivity to capacity utilization (g_u)
 G_PI = 0.05  # Investment sensitivity to profit share (g_π)
-G_0 = 0.03   # Autonomous investment rate (g₀)
 U_BASELINE = 0.80  # Baseline capacity utilization (80%)
 WAGE_SHARE_BASELINE = 0.55  # Approximate US wage share
+
+
+def first_nonnull(x):
+    """Get first non-null value to avoid false missingness from 'first'."""
+    x = x.dropna()
+    return x.iloc[0] if len(x) else np.nan
 
 
 def load_crosswalk():
@@ -37,69 +49,104 @@ def load_crosswalk():
 
 
 def calculate_occupation_exposure(df):
-    """Aggregate task-level data to occupation level."""
+    """
+    Aggregate task-level data to occupation level.
+
+    WARNING: This produces GLOBAL API usage share, not within-occupation exposure.
+    ai_exposure = (API usage for occupation) / (total API usage across all occupations)
+    """
+    df = df.copy()
+
+    # FIX: Handle column name variations
+    if "Job Zone" in df.columns and "job_zone" not in df.columns:
+        df = df.rename(columns={"Job Zone": "job_zone"})
+
+    # FIX: task_importance not in attached CSV → set neutral placeholder
+    if "task_importance" not in df.columns:
+        df["task_importance"] = 1.0
+
+    # FIX: nonroutine_total not in attached CSV → optional, skip if missing
+    has_nonroutine = "nonroutine_total" in df.columns
+
     total_usage = df['api_usage_count'].sum()
-    df['task_usage_share'] = df['api_usage_count'] / total_usage
+    df['task_usage_share'] = df['api_usage_count'] / total_usage if total_usage > 0 else 0.0
     df['weighted_exposure'] = df['task_usage_share'] * df['task_importance'].fillna(df['task_importance'].mean())
 
-    occ = df.groupby('onet_soc_code').agg({
+    agg_dict = {
         'api_usage_count': 'sum',
-        'task_usage_share': 'sum',
+        'task_usage_share': 'sum',  # This is occupation's share of ALL API usage (global)
         'weighted_exposure': 'sum',
-        'A_MEAN': 'first',
-        'A_MEDIAN': 'first',
-        'TOT_EMP': 'first',
-        'onet_occupation_title': 'first',
-        'Job Zone': 'first',
-        'nonroutine_total': 'mean',
+        'A_MEAN': first_nonnull,  # FIX: Use first_nonnull, not 'first'
+        'A_MEDIAN': first_nonnull,
+        'TOT_EMP': first_nonnull,
+        'onet_occupation_title': first_nonnull,
+        'job_zone': first_nonnull,
         'task_importance': 'mean'
-    }).reset_index()
+    }
 
-    occ['ai_exposure'] = occ['task_usage_share']
-    return occ[occ['A_MEAN'].notna()].copy()
+    if has_nonroutine:
+        agg_dict['nonroutine_total'] = 'mean'
+
+    occ = df.groupby('onet_soc_code', as_index=False).agg(agg_dict)
+
+    # CLARIFY: This is global usage share, not occupation-specific exposure intensity
+    occ['occupation_usage_share_global'] = occ['task_usage_share']
+    occ['ai_exposure_proxy'] = occ['weighted_exposure']
+
+    return occ.dropna(subset=['TOT_EMP', 'A_MEAN']).copy()
 
 
 def bhaduri_marglin_model(occ):
     """
-    Estimate Bhaduri-Marglin endogenous regime model.
+    Calibrate Bhaduri-Marglin endogenous regime model.
 
     Investment: I = g₀ + g_u×u + g_π×π
     Savings: S = s_π × π × u
     Equilibrium: u* = (g₀ + g_π×π) / (s_π×π - g_u)
-    Regime: ∂u*/∂π ≷ 0 → profit-led / wage-led
+
+    FIX: Calibrate g₀ so u_star_before == U_BASELINE (not hardcoded G_0).
     """
     # Calculate wage bill
     occ['wage_bill'] = occ['TOT_EMP'] * occ['A_MEAN']
     total_wage_bill = occ['wage_bill'].sum()
 
-    # Wage at risk
-    occ['wage_at_risk'] = occ['wage_bill'] * occ['ai_exposure']
+    # Wage at risk (WARNING: using global usage share as proxy for displacement share)
+    occ['wage_at_risk'] = occ['wage_bill'] * occ['ai_exposure_proxy']
 
     # Profit share calculations
     profit_share_baseline = 1 - WAGE_SHARE_BASELINE
-    delta_profit_share = occ['wage_at_risk'].sum() / total_wage_bill
-    profit_share_new = profit_share_baseline + delta_profit_share
+    delta_profit_share = occ['wage_at_risk'].sum() / total_wage_bill if total_wage_bill > 0 else 0.0
 
-    # Equilibrium utilization BEFORE AI shock
-    denominator_before = (S_PI * profit_share_baseline) - G_U
-    if denominator_before <= 0:
-        u_star_before = U_BASELINE
-    else:
-        u_star_before = (G_0 + G_PI * profit_share_baseline) / denominator_before
+    # FIX: Bound profit share to [0, 1]
+    profit_share_new = np.clip(profit_share_baseline + delta_profit_share, 0.0, 1.0)
+
+    # FIX: Calibrate g₀ so that u_star_before == U_BASELINE
+    denom_before = (S_PI * profit_share_baseline) - G_U
+    if denom_before <= 0:
+        raise ValueError(f"Baseline denominator {denom_before:.4f} <= 0; cannot calibrate g₀ with these params.")
+
+    G_0_calibrated = U_BASELINE * denom_before - (G_PI * profit_share_baseline)
+
+    # Equilibrium utilization BEFORE AI shock (should equal U_BASELINE by construction)
+    u_star_before = U_BASELINE
 
     # Equilibrium utilization AFTER AI shock
     denominator_after = (S_PI * profit_share_new) - G_U
     if denominator_after <= 0:
-        u_star_after = U_BASELINE
+        u_star_after = U_BASELINE  # Fallback
     else:
-        u_star_after = (G_0 + G_PI * profit_share_new) / denominator_after
+        u_star_after = (G_0_calibrated + G_PI * profit_share_new) / denominator_after
+
+    # FIX: Bound utilization to [0, 1]
+    u_star_after = float(np.clip(u_star_after, 0.0, 1.0))
 
     # Change in utilization
     delta_u = u_star_after - u_star_before
 
     # Regime determination: ∂u*/∂π
-    regime_numerator = -(G_PI * G_U + G_0 * S_PI)
-    regime_denominator = denominator_before ** 2 if denominator_before > 0 else 1
+    # With positive params, this is always negative → always wage-led in this reduced model
+    regime_numerator = -(G_PI * G_U + G_0_calibrated * S_PI)
+    regime_denominator = denom_before ** 2 if denom_before > 0 else 1
     partial_u_partial_pi = regime_numerator / regime_denominator
 
     regime = "profit-led" if partial_u_partial_pi > 0 else "wage-led"
@@ -107,13 +154,8 @@ def bhaduri_marglin_model(occ):
     # Output effect
     output_effect = delta_u / U_BASELINE if U_BASELINE > 0 else 0
 
-    # Investment effect: ΔI = g_u×Δu + g_π×Δπ
-    investment_effect = G_U * delta_u + G_PI * delta_profit_share
-
-    # Savings effect: ΔS = s_π×(π×Δu + u×Δπ)
-    savings_effect = S_PI * (profit_share_baseline * delta_u + U_BASELINE * delta_profit_share)
-
     return {
+        'g0_calibrated': G_0_calibrated,
         'profit_share_baseline': profit_share_baseline,
         'profit_share_new': profit_share_new,
         'delta_profit_share': delta_profit_share,
@@ -123,13 +165,11 @@ def bhaduri_marglin_model(occ):
         'partial_u_partial_pi': partial_u_partial_pi,
         'regime': regime,
         'output_effect': output_effect,
-        'investment_effect': investment_effect,
-        'savings_effect': savings_effect,
         'total_wage_bill': total_wage_bill,
         's_pi': S_PI,
         'g_u': G_U,
         'g_pi': G_PI,
-        'g_0': G_0
+        'u_baseline': U_BASELINE
     }, occ
 
 
@@ -141,6 +181,7 @@ def save_results(results, occ):
     # Model summary
     summary = pd.DataFrame({
         'Metric': [
+            'g₀ (calibrated)',
             'Baseline profit share',
             'New profit share (post-AI)',
             'Change in profit share',
@@ -152,6 +193,7 @@ def save_results(results, occ):
             '∂u*/∂π (regime indicator)'
         ],
         'Value': [
+            results['g0_calibrated'],
             results['profit_share_baseline'],
             results['profit_share_new'],
             results['delta_profit_share'],
@@ -163,6 +205,7 @@ def save_results(results, occ):
             results['partial_u_partial_pi']
         ],
         'Formatted': [
+            f"{results['g0_calibrated']:.4f}",
             f"{results['profit_share_baseline']*100:.1f}%",
             f"{results['profit_share_new']*100:.1f}%",
             f"{results['delta_profit_share']*100:.2f}%",
@@ -178,18 +221,26 @@ def save_results(results, occ):
 
     # Parameters used
     params = pd.DataFrame({
-        'Parameter': ['s_π', 'g_u', 'g_π', 'g₀', 'u_baseline', 'wage_share_baseline'],
-        'Value': [S_PI, G_U, G_PI, G_0, U_BASELINE, WAGE_SHARE_BASELINE],
+        'Parameter': ['s_π', 'g_u', 'g_π', 'g₀ (calibrated)', 'u_baseline', 'wage_share_baseline'],
+        'Value': [S_PI, G_U, G_PI, results['g0_calibrated'], U_BASELINE, WAGE_SHARE_BASELINE],
         'Description': [
             'Propensity to save out of profits',
             'Investment sensitivity to utilization',
             'Investment sensitivity to profit share',
-            'Autonomous investment rate',
+            'Autonomous investment rate (calibrated to baseline)',
             'Baseline capacity utilization',
             'Baseline wage share'
         ]
     })
     params.to_csv(OUTPUT_DIR / "parameters.csv", index=False)
+
+    print("\n" + "="*80)
+    print("BHADURI-MARGLIN MODEL RESULTS")
+    print("="*80)
+    print(summary.to_string(index=False))
+    print("\nNOTE: With these parameter signs (all positive), regime is always wage-led.")
+    print("To get profit-led regimes, need fuller Bhaduri-Marglin demand closure")
+    print("(consumption out of wages vs profits, net exports effects, etc.)")
 
     return summary
 
