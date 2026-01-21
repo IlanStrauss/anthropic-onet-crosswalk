@@ -345,10 +345,10 @@ print("\nBut this is ASSOCIATIONAL evidence, not structural estimation of O-ring
 print("See INTERPRETATION.md for full theoretical discussion.")
 
 # Save results
-summary_results.to_csv(OUTPUT_DIR / 'model_summary_corrected.csv', index=False)
-soc_agg.to_csv(OUTPUT_DIR / 'soc_level_data_corrected.csv', index=False)
+summary_results.to_csv(OUTPUT_DIR / 'model_summary.csv', index=False)
+soc_agg.to_csv(OUTPUT_DIR / 'soc_level_data.csv', index=False)
 
-print(f"\n✓ Corrected results saved to: {OUTPUT_DIR}")
+print(f"\n✓ Results saved to: {OUTPUT_DIR}")
 print("\n" + "="*80)
 print("ESTIMATION COMPLETE")
 print("="*80)
