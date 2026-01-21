@@ -13,15 +13,17 @@ This directory contains three theoretical frameworks for analyzing the labor mar
 | Model | School | Type | Effect Variable | Latest Effect |
 |-------|--------|------|-----------------|---------------|
 | [Acemoglu-Restrepo](acemoglu_restrepo/) | Neoclassical | Calibration | Implied wage effect (index-scaled) | **-8.01%** |
-| [**A-R Diff-in-Diff (CAUSAL)**](acemoglu_restrepo/) | **Neoclassical** | **Causal/Econometric** | **LLM treatment effect on wages** | **-0.014** (p=0.006)** |
+| [**A-R Diff-in-Diff**](acemoglu_restrepo/) | **Neoclassical** | **Quasi-experimental** | **LLM effect (conditional on parallel trends)** | **-0.014** (p=0.006)** |
 | [Kaleckian](kaleckian/) | Post-Keynesian | Calibration | AD effect with multiplier | **+32.05%** |
 | [Bhaduri-Marglin](bhaduri_marglin/) | Post-Keynesian | Calibration | Output effect (capacity utilization) | **-44.21%** |
 | [O-ring Automation](oring_automation/) | Empirical | Cross-sectional | Usage-wage elasticity (GLM Poisson) | **+1.50*** (p<0.001) |
 
 **CRITICAL NOTE:**
 - **Calibrations** (A-R, Kaleckian, B-M): Theoretical parameter values from literature, NOT fitted to data
-- **Econometric** (A-R Validation): ONLY model with actual regression estimation on wage changes
+- **Quasi-experimental** (Diff-in-Diff): Best available design, but parallel trends cannot be validated (only 1 pre-period)
 - **Cross-sectional** (O-ring): Association between usage and wage levels, NOT causal
+
+⚠️ **Parallel trends assumption:** Required for diff-in-diff causal interpretation, but untestable with current data (need multiple pre-periods)
 
 Calibration effects depend heavily on:
 - Assumed displacement rates (models assume AI usage → full task automation)
@@ -94,13 +96,36 @@ ai_exposure_i = (sum of importance for AI-touched tasks) / (sum of importance fo
 
 **: p<0.01, ***: p<0.001
 
-**Parallel Trends Test:** ✓ **PASSED** (pre-period difference < 1%)
+**Parallel Trends Test:** Pre-period level difference < 1% (but see limitations below)
 
-**Interpretation:**
-- ✅ **CAUSAL EVIDENCE:** High-exposure occupations experienced **1.4-1.9% ADDITIONAL wage decline** after LLM release (March 2023)
-- ✅ Effect is statistically significant (p < 0.01) and economically meaningful
-- ✅ Parallel trends assumption satisfied → valid causal interpretation
-- ✅ **First rigorous causal estimate** of LLM displacement effects
+**Interpretation (CONDITIONAL on parallel trends assumption):**
+- High-exposure occupations experienced **1.4-1.9% ADDITIONAL wage decline** after LLM release (March 2023)
+- Effect is statistically significant (p < 0.01) and economically meaningful
+- **Best available estimate** of LLM displacement effect
+
+**CRITICAL LIMITATIONS:**
+
+⚠️ **Parallel trends CANNOT be validated:**
+- Only ONE pre-treatment period (2022-2023)
+- Cannot test if high/low exposure groups had parallel trends before 2023
+- Need wage data back to 2019-2021 for proper validation
+
+⚠️ **Evidence suggests differential pre-trends:**
+- Effect present in 2022-2023 (BEFORE LLM release!)
+- Simple correlation (-0.066) >> diff-in-diff (-0.014)
+- High-exposure occupations likely declining faster pre-LLM
+
+⚠️ **What diff-in-diff estimates with violated parallel trends:**
+```
+β₃ = True LLM effect + Differential pre-trend continuation
+```
+Cannot separate these without multiple pre-periods!
+
+**Honest conclusion:**
+- Diff-in-diff is BETTER than simple correlation (controls for levels + common trends)
+- But NOT definitive causal proof without parallel trends validation
+- **Suggestive** of LLM displacement, conditional on strong assumptions
+- True effect likely SMALLER if differential pre-trends exist
 
 **Why Simple Correlations Are Spurious:**
 

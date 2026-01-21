@@ -646,20 +646,33 @@ Gans & Goldfarb (2025) show this is **mathematically inconsistent with O-ring pr
 
 **: p<0.01, ***: p<0.001
 
-**Parallel Trends Test:** ✓ **PASSED** (pre-period difference < 1%) → Valid causal interpretation
+**Parallel Trends:** Pre-period level difference < 1%, **BUT trend parallelism UNTESTABLE** (only 1 pre-period)
 
 **Decomposition of total correlation:**
 ```
-Total correlation (-0.066) = Pre-existing trends (-0.052) + LLM causal effect (-0.014)
-                              ↑ 79% of correlation   ↑ 21% causal LLM effect
+Total correlation (-0.066) = Pre-existing trends (-0.052) + Diff-in-diff estimate (-0.014)
+                              ↑ 79% confounding       ↑ 21% remaining difference
+```
+
+**What diff-in-diff controls for:**
+1. **Level differences** between high/low exposure groups ✓
+2. **Common time trends** affecting all occupations ✓
+3. **Differential pre-trends** between groups ✗ (CANNOT control without multiple pre-periods)
+
+**CRITICAL LIMITATION:**
+```
+If parallel trends violated (likely!), then:
+β₃ = True LLM effect + Differential pre-trend continuation
+
+Cannot separate these without wage data back to 2019-2021!
 ```
 
 **Resolution of the paradox:**
 1. **Selection (O-ring)**: High-skill workers adopt AI tools first → cross-sectional correlation (+)
 2. **Pre-existing vulnerability**: High-Claude-usage occupations ALREADY experiencing wage pressure pre-LLM (-)
-3. **LLM causal displacement**: LLM release caused ADDITIONAL 1.4% decline beyond existing trends (-)
+3. **Diff-in-diff estimate**: -0.014 (conditional on parallel trends) - likely includes some pre-trend continuation
 
-**Key insight:** Most of the negative correlation is pre-existing vulnerability, NOT LLM causation. Diff-in-diff isolates the true causal effect.
+**Honest conclusion:** Diff-in-diff is BETTER than simple correlation, but NOT definitive causal proof. Suggestive of LLM displacement effect around 1-2%, conditional on strong assumptions.
 
 **Analogy:** "Computers and wages" (Autor, Katz, Krueger 1998)
 - Skilled workers adopted computers first (cross-sectional +)

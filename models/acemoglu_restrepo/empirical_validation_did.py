@@ -479,16 +479,16 @@ print("=" * 80)
 
 if pval_did < 0.05:
     if beta_did < 0:
-        print(f"\n✓ CAUSAL EVIDENCE OF LLM DISPLACEMENT:")
+        print(f"\n✓ SIGNIFICANT DIFF-IN-DIFF EFFECT:")
         print(f"  - High-exposure occupations experienced {abs(beta_did)*100:.2f}% additional")
         print(f"    wage decline after LLM release (β₃ = {beta_did:.4f}, p < {pval_did:.3f})")
         print(f"  - Effect is statistically significant and economically meaningful")
     else:
-        print(f"\n✓ NO DISPLACEMENT DETECTED:")
+        print(f"\n✓ SIGNIFICANT POSITIVE EFFECT:")
         print(f"  - High-exposure occupations experienced {beta_did*100:.2f}% relative GAIN")
         print(f"    (β₃ = {beta_did:.4f}, p < {pval_did:.3f})")
 else:
-    print(f"\n✗ NO CAUSAL EFFECT DETECTED:")
+    print(f"\n✗ NO SIGNIFICANT EFFECT DETECTED:")
     print(f"  - Diff-in-diff coefficient: β₃ = {beta_did:.4f} (p = {pval_did:.3f})")
     print(f"  - High and low exposure groups show similar trends pre and post-LLM")
     print(f"  - Cannot reject null hypothesis of no LLM effect")
@@ -496,5 +496,58 @@ else:
 print(f"\nPre-existing trend difference: {(pre_high - pre_low)*100:.2f}%")
 print(f"Post-LLM trend difference: {(post_high - post_low)*100:.2f}%")
 print(f"Change (DiD): {did_simple*100:.2f}%")
+
+print("\n" + "=" * 80)
+print("CRITICAL LIMITATIONS")
+print("=" * 80)
+
+print("""
+⚠️  PARALLEL TRENDS ASSUMPTION CANNOT BE VALIDATED:
+
+1. **Only ONE pre-treatment period (2022-2023)**
+   - Cannot test if trends were parallel before treatment
+   - Need multiple pre-periods (2019, 2020, 2021...) to verify
+   - We tested pre-LEVEL similarity, not pre-TREND parallelism
+
+2. **Evidence suggests differential pre-trends:**
+   - Effect present in 2022-2023 (BEFORE LLM release!)
+   - Simple correlation (-0.066) >> diff-in-diff (-0.014)
+   - High-exposure occupations likely declining faster pre-2023
+
+3. **Confounding remains possible:**
+   - AI exposure may proxy for routine task vulnerability
+   - These occupations experiencing displacement from:
+     * Globalization/offshoring (ongoing)
+     * Pre-LLM automation (RPA, expert systems)
+     * Structural shifts in labor demand
+
+4. **What diff-in-diff estimates with violated parallel trends:**
+   β₃ = True LLM effect + Differential pre-trend continuation
+
+   Cannot separate these without more pre-treatment periods!
+
+CAUSAL INTERPRETATION REQUIRES STRONG ASSUMPTION:
+==================================================
+IF parallel trends holds (high/low would have same trend absent LLMs)
+THEN β₃ = -0.014 is causal LLM displacement effect
+
+BUT parallel trends is UNTESTABLE with current data structure.
+
+HONEST CONCLUSION:
+==================
+- Diff-in-diff is BETTER than simple correlation (controls for levels + common trends)
+- But NOT definitive causal proof without parallel trends validation
+- Best available estimate: β₃ = -0.014 (conditional on parallel trends)
+- True LLM effect likely SMALLER if high-exposure occupations had differential pre-trends
+
+TO IMPROVE CAUSAL INFERENCE:
+============================
+1. Obtain wage data back to 2019-2021 (multiple pre-periods)
+2. Test for pre-treatment trend parallelism visually and statistically
+3. Consider alternative designs:
+   - Synthetic control (match on pre-trends)
+   - Event study (flexible timing of effects)
+   - Instrumental variables (if valid instruments exist)
+""")
 
 print("\n" + "=" * 80)
